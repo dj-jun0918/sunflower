@@ -1,0 +1,84 @@
+name: solar_eye_frontend
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.0 # Aligned with Flutter 3.27.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.6 # Adjusted for compatibility
+
+  # Media
+  image_picker: ^1.0.7 # Adjusted for compatibility
+
+  # State Management (Riverpod)
+  flutter_riverpod: ^2.6.1 # Upgraded to fix web crash
+  riverpod_annotation: ^2.6.1 # Upgraded to match
+
+  # Routing
+  go_router: ^16.1.0 # Adjusted for compatibility
+
+  # Networking & Serialization
+  dio: ^5.4.1 # Adjusted for compatibility
+  json_annotation: ^4.8.1 # Adjusted for compatibility
+  freezed_annotation: ^2.4.1
+
+  # Firebase
+  firebase_core: ^2.27.0 # Adjusted for compatibility
+  firebase_auth: ^4.17.9 # Adjusted for compatibility
+  # firebase_messaging: ^14.7.20 # Adjusted for compatibility
+
+  # Social Login
+  google_sign_in: ^6.2.1
+  kakao_flutter_sdk_user: '>=1.9.1+1 <2.0.0'
+
+  # Video
+  video_player: ^2.8.2 # Adjusted for compatibility
+
+  # Config
+  flutter_dotenv: ^5.1.0
+
+  # Location
+  geolocator: ^11.0.0
+  intl: ^0.20.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.1 # Adjusted for compatibility
+  mocktail: ^1.0.3
+  flutter_launcher_icons: ^0.13.1
+  # flutter_native_splash: ^2.4.0
+
+  # Code Generators
+  build_runner: ^2.4.9 # Downgraded to match SDK
+  riverpod_generator: ^2.3.11 # Adjusted for compatibility
+  json_serializable: ^6.7.1
+  freezed: ^2.4.7 # Adjusted for compatibility
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - .env
+
+  fonts:
+    - family: Pretendard
+      fonts:
+        - asset: assets/fonts/Pretendard-Light.otf
+          weight: 300
+        - asset: assets/fonts/Pretendard-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Pretendard-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Pretendard-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/Pretendard-Bold.otf
+          weight: 700

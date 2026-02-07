@@ -1,0 +1,25 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.buildDir = '../build'
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(':app')
+}
+
+subprojects {
+    tasks.withType(JavaCompile).configureEach {
+        options.compilerArgs.removeIf { it == '-Werror' }
+        options.compilerArgs.add '-Xlint:-options'
+    }
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}

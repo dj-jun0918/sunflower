@@ -1,0 +1,52 @@
+# =============================================================================
+# Solar Eye Backend - Docker Compose (Development)
+# =============================================================================
+# Hot reload 및 디버깅을 위한 개발 환경 구성
+# 사용법: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # Backend API Server (Development Override)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.dev
+    container_name: solar_eye_backend_dev
+    environment:
+      - DEBUG=true
+      - APP_ENV=development
+      - LOG_LEVEL=DEBUG
+    volumes:
+      # 소스 코드 마운트 (Hot Reload)
+      - ../app:/app/app
+      # 업로드/스냅샷 디렉토리
+      - ../uploads:/app/uploads
+      - ../snapshots:/app/snapshots
+      - ../logs:/app/logs
+      # AI 모델 파일
+      - ../app/ai/models:/app/app/ai/models:ro
+      # Firebase 인증 파일
+      - ../solar-eye-56f78-firebase-adminsdk-fbsvc-7e8c516d89.json:/app/solar-eye-56f78-firebase-adminsdk-fbsvc-7e8c516d89.json:ro
+    ports:
+      - "8000:8000"
+      # 디버깅 포트 (debugpy)
+      - "5678:5678"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app/app
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL (Development - 로컬 포트 노출)
+  # ---------------------------------------------------------------------------
+  postgres:
+    ports:
+      - "5432:5432"
+
+  # ---------------------------------------------------------------------------
+  # Redis (Development - 로컬 포트 노출)
+  # ---------------------------------------------------------------------------
+  redis:
+    ports:
+      - "6379:6379"

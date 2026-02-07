@@ -1,0 +1,15 @@
+1 validation error for AnalysisSessionResponse
+facility_id
+  Field required [type=missing, input_value=<AnalysisSession(id=8f1ce...ompleted', type='cctv')>, input_type=AnalysisSession]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
+Traceback (most recent call last):
+  File "C:\Users\dgjun\workspace\solar_eye\solar_eye_backend\scripts\debug_analysis_service.py", line 45, in debug
+    result = await AnalysisService.process_analysis(
+  File "C:\Users\dgjun\workspace\solar_eye\solar_eye_backend\app\services\analysis_service.py", line 123, in process_analysis
+    return AnalysisSessionResponse.model_validate(session)
+  File "C:\Users\dgjun\AppData\Local\Programs\Python\Python310\lib\site-packages\pydantic\main.py", line 716, in model_validate
+    return cls.__pydantic_validator__.validate_python(
+pydantic_core._pydantic_core.ValidationError: 1 validation error for AnalysisSessionResponse
+facility_id
+  Field required [type=missing, input_value=<AnalysisSession(id=8f1ce...ompleted', type='cctv')>, input_type=AnalysisSession]
+    For further information visit https://errors.pydantic.dev/2.12/v/missing
