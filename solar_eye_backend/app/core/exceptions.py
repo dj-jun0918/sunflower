@@ -92,7 +92,7 @@ def create_error_response(
     error_code: str = "ERROR",
     errors: list[dict[str, Any]] | None = None,
 ) -> JSONResponse:
-    """에러 응답 생성"""
+    """에러 응답 생성 (CORS 헤더 포함)"""
     content = {
         "success": False,
         "error": {
@@ -102,8 +102,15 @@ def create_error_response(
     }
     if errors:
         content["error"]["details"] = errors
+    
+    # CORS 헤더를 에러 응답에도 추가 (브라우저에서 에러 메시지를 읽을 수 있도록)
+    headers = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "*",
+        "Access-Control-Allow-Headers": "*",
+    }
         
-    return JSONResponse(status_code=status_code, content=content)
+    return JSONResponse(status_code=status_code, content=content, headers=headers)
 
 
 def register_exception_handlers(app: FastAPI) -> None:
