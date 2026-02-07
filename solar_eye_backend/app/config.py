@@ -166,9 +166,21 @@ class Settings(BaseSettings):
         return self.app_env == "staging"
 
     def get_database_url(self) -> str:
-        """데이터베이스 URL 반환 (환경변수 우선)"""
-        if self.database_url:
+        """데이터베이스 URL 반환 (Cloud SQL 소켓 지원)"""
+        # 환경변수 DATABASE_URL이 설정되어 있으면 우선 사용
+        if self.database_url and not self.database_url.startswith("postgresql+asyncpg://postgres:postgres@localhost"):
             return self.database_url
+        
+        # Cloud SQL Unix 소켓 연결 (Cloud Run에서 사용)
+        # DB_HOST가 /cloudsql/로 시작하면 Unix 소켓 사용
+        if self.postgres_host.startswith("/cloudsql/"):
+            # asyncpg Unix socket format: postgresql+asyncpg://user:pass@/dbname?host=/cloudsql/...
+            return (
+                f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
+                f"@/{self.postgres_db}?host={self.postgres_host}"
+            )
+        
+        # 일반 TCP 연결
         return (
             f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
             f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
