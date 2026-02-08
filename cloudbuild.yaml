@@ -1,0 +1,45 @@
+# =============================================================================
+# Solar Eye Backend - Cloud Build Configuration
+# =============================================================================
+# Extended timeout for heavy ML dependencies
+# =============================================================================
+
+steps:
+  # Build Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
+      - '.'
+    dir: 'solar_eye_backend'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'solar-eye-backend-gpu'
+      - '--image'
+      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
+      - '--region'
+      - 'asia-southeast1'
+      - '--platform'
+      - 'managed'
+
+images:
+  - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
+
+# Extended timeout: 1 hour (3600 seconds)
+timeout: '3600s'
+
+options:
+  # Use a more powerful machine for faster builds
+  machineType: 'E2_HIGHCPU_32'

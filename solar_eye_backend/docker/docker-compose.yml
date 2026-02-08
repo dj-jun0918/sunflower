@@ -1,0 +1,135 @@
+# =============================================================================
+# Solar Eye Backend - Docker Compose Configuration
+# =============================================================================
+# PostgreSQL 및 Redis 서비스 컨테이너 구성
+# =============================================================================
+
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: solar_eye_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-solar_eye}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-solar_eye}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - solar_eye_network
+
+  # ---------------------------------------------------------------------------
+  # Redis Cache
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: solar_eye_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - solar_eye_network
+
+  # ---------------------------------------------------------------------------
+  # Backend API Server
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: solar_eye_backend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - APP_ENV=production
+      - DEBUG=false
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-solar_eye}
+      - REDIS_URL=redis://redis:6379/0
+      - POSTGRES_HOST=postgres
+      - REDIS_HOST=redis
+      - FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
+    env_file:
+      - ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # 업로드 및 스냅샷 디렉토리
+      - ../uploads:/app/uploads
+      - ../snapshots:/app/snapshots
+      - ../logs:/app/logs
+      # AI 모델 파일
+      - ../app/ai/models:/app/app/ai/models:ro
+      # Firebase 인증 파일
+      - ../solar-eye-56f78-firebase-adminsdk-fbsvc-7e8c516d89.json:/app/firebase-credentials.json:ro
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - solar_eye_network
+    # GPU 지원 (NVIDIA Docker 필요)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+    # ---------------------------------------------------------------------------
+    # Auth Test Tool (Firebase Token Generator)
+    # ---------------------------------------------------------------------------
+  test-tool:
+    image: python:3.10-slim
+    container_name: solar_eye_test_tool
+    working_dir: /app
+    volumes:
+      - ../../:/app:ro # 프로젝트 폴더 루트를 마운트
+    command: python -m http.server 8080
+    ports:
+      - "8080:8080"
+    networks:
+      - solar_eye_network
+
+# -----------------------------------------------------------------------------
+# Volumes
+# -----------------------------------------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+# -----------------------------------------------------------------------------
+# Networks
+# -----------------------------------------------------------------------------
+networks:
+  solar_eye_network:
+    driver: bridge

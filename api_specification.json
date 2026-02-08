@@ -1,0 +1,1207 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Solar-Eye API",
+    "version": "1.0.0",
+    "description": "AI 기반 태양광 패널 결함 탐지 및 유지보수 솔루션 API 명세서"
+  },
+  "servers": [
+    {
+      "url": "https://api.solar-eye.com",
+      "description": "Production Server"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Development Server"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "소셜 로그인 후 사용자 등록/조회",
+        "description": "Firebase ID Token을 검증하고 사용자 정보를 등록 또는 조회합니다.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["firebase_token"],
+                "properties": {
+                  "firebase_token": {
+                    "type": "string",
+                    "description": "Firebase ID Token",
+                    "example": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  },
+                  "fcm_token": {
+                    "type": "string",
+                    "description": "FCM 푸시 알림 토큰 (선택)",
+                    "example": "fMx7kP3..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "로그인 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "firebase_uid": { "type": "string", "example": "abc123xyz" },
+                        "email": { "type": "string", "example": "user@example.com" },
+                        "display_name": { "type": "string", "example": "홍길동" },
+                        "provider": { "type": "string", "enum": ["google.com", "kakao.com"], "example": "google.com" },
+                        "created_at": { "type": "string", "format": "date-time", "example": "2026-01-15T10:30:00Z" },
+                        "last_login_at": { "type": "string", "format": "date-time", "example": "2026-01-16T14:00:00Z" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 실패",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "현재 사용자 정보 조회",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "사용자 정보 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "firebase_uid": { "type": "string", "example": "abc123xyz" },
+                        "email": { "type": "string", "example": "user@example.com" },
+                        "display_name": { "type": "string", "example": "홍길동" },
+                        "provider": { "type": "string", "example": "google.com" },
+                        "profile_image_url": { "type": "string", "example": "https://..." },
+                        "notification_enabled": { "type": "boolean", "example": true },
+                        "created_at": { "type": "string", "format": "date-time" },
+                        "last_login_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/fcm-token": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "FCM 토큰 등록/갱신",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["fcm_token"],
+                "properties": {
+                  "fcm_token": {
+                    "type": "string",
+                    "description": "Firebase Cloud Messaging 토큰",
+                    "example": "fMx7kP3R8..."
+                  },
+                  "device_type": {
+                    "type": "string",
+                    "enum": ["android", "ios"],
+                    "example": "android"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "토큰 등록 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "FCM 토큰이 등록되었습니다." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/panels": {
+      "get": {
+        "tags": ["Panels"],
+        "summary": "패널 목록 조회",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 },
+            "description": "페이지 번호"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20 },
+            "description": "페이지당 항목 수"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["active", "inactive", "error"] },
+            "description": "패널 상태 필터"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "패널 목록 조회 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Panel" }
+                    },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Panels"],
+        "summary": "패널 등록",
+        "security": [{ "BearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "rtsp_url"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "패널/발전소 이름",
+                    "example": "서울 태양광 발전소 A동"
+                  },
+                  "location": {
+                    "type": "string",
+                    "description": "발전소 주소",
+                    "example": "서울시 강남구 역삼동 123-45"
+                  },
+                  "rtsp_url": {
+                    "type": "string",
+                    "description": "CCTV RTSP 스트리밍 URL",
+                    "example": "rtsp://admin:password@192.168.1.100:554/stream1"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "위도 (날씨 API용)",
+                    "example": 37.5665
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "format": "float",
+                    "description": "경도 (날씨 API용)",
+                    "example": 126.9780
+                  },
+                  "grid_nx": {
+                    "type": "integer",
+                    "description": "기상청 격자 X 좌표",
+                    "example": 60
+                  },
+                  "grid_ny": {
+                    "type": "integer",
+                    "description": "기상청 격자 Y 좌표",
+                    "example": 127
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "패널 등록 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Panel" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/panels/{panel_id}": {
+      "get": {
+        "tags": ["Panels"],
+        "summary": "패널 상세 조회",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "패널 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "패널 상세 정보",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/PanelDetail" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Panels"],
+        "summary": "패널 정보 수정",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "location": { "type": "string" },
+                  "rtsp_url": { "type": "string" },
+                  "status": { "type": "string", "enum": ["active", "inactive"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "수정 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/Panel" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Panels"],
+        "summary": "패널 삭제",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "삭제 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "패널이 삭제되었습니다." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/panels/{panel_id}/status": {
+      "get": {
+        "tags": ["Panels"],
+        "summary": "패널 현재 상태 조회 (실시간)",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "패널 실시간 상태",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "panel_id": { "type": "integer", "example": 1 },
+                        "status": { "type": "string", "enum": ["normal", "warning", "danger"], "example": "normal" },
+                        "stream_status": { "type": "string", "enum": ["connected", "disconnected", "error"], "example": "connected" },
+                        "last_detection": {
+                          "type": "object",
+                          "properties": {
+                            "defect_type": { "type": "string", "enum": ["defect", "soiling", "normal"], "example": "normal" },
+                            "confidence": { "type": "number", "example": 0.95 },
+                            "detected_at": { "type": "string", "format": "date-time" }
+                          }
+                        },
+                        "today_stats": {
+                          "type": "object",
+                          "properties": {
+                            "total_detections": { "type": "integer", "example": 15 },
+                            "defect_count": { "type": "integer", "example": 0 },
+                            "soiling_count": { "type": "integer", "example": 2 }
+                          }
+                        },
+                        "updated_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/detections": {
+      "get": {
+        "tags": ["Detections"],
+        "summary": "탐지 이력 조회",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "패널 ID 필터"
+          },
+          {
+            "name": "defect_type",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["defect", "soiling", "normal"] },
+            "description": "결함 유형 필터"
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "조회 시작일 (YYYY-MM-DD)"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "조회 종료일 (YYYY-MM-DD)"
+          },
+          {
+            "name": "min_confidence",
+            "in": "query",
+            "schema": { "type": "number", "minimum": 0, "maximum": 1 },
+            "description": "최소 신뢰도 필터"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "탐지 이력 목록",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Detection" }
+                    },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/detections/{detection_id}": {
+      "get": {
+        "tags": ["Detections"],
+        "summary": "탐지 상세 조회",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "detection_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "탐지 상세 정보",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/DetectionDetail" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts": {
+      "get": {
+        "tags": ["Alerts"],
+        "summary": "알림 목록 조회",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "is_read",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "읽음 여부 필터"
+          },
+          {
+            "name": "alert_type",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["defect", "soiling", "system"] },
+            "description": "알림 유형 필터"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "알림 목록",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Alert" }
+                    },
+                    "unread_count": { "type": "integer", "example": 5 },
+                    "pagination": { "$ref": "#/components/schemas/Pagination" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts/{alert_id}/read": {
+      "put": {
+        "tags": ["Alerts"],
+        "summary": "알림 읽음 처리",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "alert_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "읽음 처리 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "알림이 읽음 처리되었습니다." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/alerts/read-all": {
+      "put": {
+        "tags": ["Alerts"],
+        "summary": "모든 알림 읽음 처리",
+        "security": [{ "BearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "전체 읽음 처리 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "5개의 알림이 읽음 처리되었습니다." },
+                    "updated_count": { "type": "integer", "example": 5 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/daily": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "일간 리포트 조회",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "패널 ID"
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "조회 날짜 (기본값: 오늘)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "일간 리포트",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/DailyReport" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/weekly": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "주간 리포트 조회",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "schema": { "type": "string", "format": "date" },
+            "description": "주 시작일"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "주간 리포트",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/WeeklyReport" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/economic": {
+      "get": {
+        "tags": ["Reports"],
+        "summary": "경제성 분석 리포트",
+        "description": "오염으로 인한 발전 손실과 청소 비용 대비 효과를 분석합니다.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["week", "month", "quarter"], "default": "month" },
+            "description": "분석 기간"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "경제성 분석 리포트",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/EconomicReport" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weather/current": {
+      "get": {
+        "tags": ["Weather"],
+        "summary": "현재 날씨 정보 조회",
+        "description": "기상청 초단기실황 API를 통해 현재 날씨 정보를 조회합니다.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "패널 ID (패널의 위치 기준 날씨 조회)"
+          },
+          {
+            "name": "nx",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "기상청 격자 X 좌표 (panel_id 미지정 시 필수)"
+          },
+          {
+            "name": "ny",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "기상청 격자 Y 좌표 (panel_id 미지정 시 필수)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "현재 날씨 정보",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": { "$ref": "#/components/schemas/CurrentWeather" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weather/forecast": {
+      "get": {
+        "tags": ["Weather"],
+        "summary": "단기 예보 조회",
+        "description": "12시간/3일 기상 예보 정보를 조회합니다.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "query",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "nx",
+            "in": "query",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "ny",
+            "in": "query",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "hours",
+            "in": "query",
+            "schema": { "type": "integer", "default": 12, "enum": [12, 24, 48, 72] },
+            "description": "예보 시간 범위"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "단기 예보 정보",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "location": {
+                          "type": "object",
+                          "properties": {
+                            "nx": { "type": "integer", "example": 60 },
+                            "ny": { "type": "integer", "example": 127 }
+                          }
+                        },
+                        "forecasts": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/ForecastItem" }
+                        },
+                        "fetched_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weather/status": {
+      "get": {
+        "tags": ["Weather"],
+        "summary": "우천 여부 확인",
+        "description": "현재 비/눈 여부를 확인하여 알림 중지 판단에 활용합니다.",
+        "security": [{ "BearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "panel_id",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "우천 상태",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "is_rainy": { "type": "boolean", "example": false, "description": "우천 여부 (true=비/눈)" },
+                        "precipitation_type": { 
+                          "type": "string", 
+                          "enum": ["none", "rain", "rain_snow", "snow", "shower"],
+                          "example": "none",
+                          "description": "강수형태"
+                        },
+                        "soiling_alert_enabled": { "type": "boolean", "example": true, "description": "오염 알림 활성화 여부" },
+                        "checked_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Firebase ID Token",
+        "description": "Firebase Authentication ID Token"
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "UNAUTHORIZED" },
+              "message": { "type": "string", "example": "인증 토큰이 유효하지 않습니다." }
+            }
+          }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer", "example": 1 },
+          "limit": { "type": "integer", "example": 20 },
+          "total_items": { "type": "integer", "example": 100 },
+          "total_pages": { "type": "integer", "example": 5 },
+          "has_next": { "type": "boolean", "example": true },
+          "has_prev": { "type": "boolean", "example": false }
+        }
+      },
+      "Panel": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "name": { "type": "string", "example": "서울 태양광 발전소 A동" },
+          "location": { "type": "string", "example": "서울시 강남구 역삼동" },
+          "rtsp_url": { "type": "string", "example": "rtsp://..." },
+          "status": { "type": "string", "enum": ["active", "inactive", "error"], "example": "active" },
+          "latitude": { "type": "number", "example": 37.5665 },
+          "longitude": { "type": "number", "example": 126.9780 },
+          "grid_nx": { "type": "integer", "example": 60 },
+          "grid_ny": { "type": "integer", "example": 127 },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PanelDetail": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/Panel" },
+          {
+            "type": "object",
+            "properties": {
+              "recent_detections": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Detection" },
+                "description": "최근 5건의 탐지 이력"
+              },
+              "today_summary": {
+                "type": "object",
+                "properties": {
+                  "total_frames": { "type": "integer", "example": 1000 },
+                  "defect_count": { "type": "integer", "example": 0 },
+                  "soiling_count": { "type": "integer", "example": 3 },
+                  "normal_count": { "type": "integer", "example": 997 }
+                }
+              },
+              "current_weather": { "$ref": "#/components/schemas/CurrentWeather" }
+            }
+          }
+        ]
+      },
+      "Detection": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "panel_id": { "type": "integer", "example": 1 },
+          "defect_type": { "type": "string", "enum": ["defect", "soiling", "normal"], "example": "soiling" },
+          "defect_subtype": { "type": "string", "example": "bird_drop", "description": "상세 결함 유형 (dust, bird_drop, crack 등)" },
+          "confidence": { "type": "number", "format": "float", "example": 0.92 },
+          "bbox": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number", "example": 100.5 },
+              "y": { "type": "number", "example": 200.3 },
+              "width": { "type": "number", "example": 50.0 },
+              "height": { "type": "number", "example": 60.0 }
+            },
+            "description": "바운딩 박스 좌표"
+          },
+          "snapshot_url": { "type": "string", "example": "https://storage.googleapis.com/solar-eye/snapshots/2026/01/16/abc123.jpg" },
+          "detected_at": { "type": "string", "format": "date-time", "example": "2026-01-16T14:30:00Z" }
+        }
+      },
+      "DetectionDetail": {
+        "type": "object",
+        "allOf": [
+          { "$ref": "#/components/schemas/Detection" },
+          {
+            "type": "object",
+            "properties": {
+              "panel": { "$ref": "#/components/schemas/Panel" },
+              "weather_at_detection": { "$ref": "#/components/schemas/CurrentWeather" },
+              "alert": { "$ref": "#/components/schemas/Alert" }
+            }
+          }
+        ]
+      },
+      "Alert": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "detection_id": { "type": "integer", "example": 1 },
+          "user_id": { "type": "integer", "example": 1 },
+          "alert_type": { "type": "string", "enum": ["defect", "soiling", "system"], "example": "defect" },
+          "title": { "type": "string", "example": "🔴 패널 결함 감지" },
+          "message": { "type": "string", "example": "서울 태양광 발전소 A동에서 패널 파손이 감지되었습니다." },
+          "is_read": { "type": "boolean", "example": false },
+          "snapshot_url": { "type": "string", "example": "https://..." },
+          "sent_at": { "type": "string", "format": "date-time" },
+          "read_at": { "type": "string", "format": "date-time", "nullable": true }
+        }
+      },
+      "DailyReport": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "panel_id": { "type": "integer", "example": 1 },
+          "report_date": { "type": "string", "format": "date", "example": "2026-01-16" },
+          "total_frames_analyzed": { "type": "integer", "example": 8640 },
+          "total_defects": { "type": "integer", "example": 0 },
+          "total_soiling": { "type": "integer", "example": 5 },
+          "defect_breakdown": {
+            "type": "object",
+            "properties": {
+              "broken": { "type": "integer", "example": 0 },
+              "crack": { "type": "integer", "example": 0 },
+              "hotspot": { "type": "integer", "example": 0 }
+            }
+          },
+          "soiling_breakdown": {
+            "type": "object",
+            "properties": {
+              "dust": { "type": "integer", "example": 3 },
+              "bird_drop": { "type": "integer", "example": 2 },
+              "leaves": { "type": "integer", "example": 0 }
+            }
+          },
+          "estimated_efficiency_loss": { "type": "number", "example": 2.5, "description": "추정 효율 손실률 (%)" },
+          "estimated_daily_loss": { "type": "number", "example": 1500, "description": "추정 일일 손실액 (원)" },
+          "hourly_stats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "hour": { "type": "integer", "example": 14 },
+                "defect_count": { "type": "integer", "example": 0 },
+                "soiling_count": { "type": "integer", "example": 1 }
+              }
+            }
+          },
+          "weather_summary": {
+            "type": "object",
+            "properties": {
+              "avg_temperature": { "type": "number", "example": 5.2 },
+              "precipitation": { "type": "boolean", "example": false },
+              "condition": { "type": "string", "example": "맑음" }
+            }
+          },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "WeeklyReport": {
+        "type": "object",
+        "properties": {
+          "panel_id": { "type": "integer", "example": 1 },
+          "start_date": { "type": "string", "format": "date", "example": "2026-01-10" },
+          "end_date": { "type": "string", "format": "date", "example": "2026-01-16" },
+          "total_defects": { "type": "integer", "example": 1 },
+          "total_soiling": { "type": "integer", "example": 23 },
+          "daily_breakdown": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": { "type": "string", "format": "date" },
+                "defect_count": { "type": "integer" },
+                "soiling_count": { "type": "integer" },
+                "efficiency_loss": { "type": "number" }
+              }
+            }
+          },
+          "trend": {
+            "type": "object",
+            "properties": {
+              "soiling_trend": { "type": "string", "enum": ["increasing", "stable", "decreasing"], "example": "stable" },
+              "recommendation": { "type": "string", "example": "현재 오염 수준은 정상 범위입니다." }
+            }
+          },
+          "total_estimated_loss": { "type": "number", "example": 10500 }
+        }
+      },
+      "EconomicReport": {
+        "type": "object",
+        "properties": {
+          "panel_id": { "type": "integer", "example": 1 },
+          "period": { "type": "string", "example": "month" },
+          "analysis_date": { "type": "string", "format": "date", "example": "2026-01-16" },
+          "soiling_impact": {
+            "type": "object",
+            "properties": {
+              "average_soiling_coverage": { "type": "number", "example": 3.2, "description": "평균 오염 면적 (%)" },
+              "estimated_efficiency_loss": { "type": "number", "example": 4.5, "description": "추정 효율 손실률 (%)" },
+              "estimated_monthly_loss": { "type": "number", "example": 50000, "description": "추정 월 손실액 (원)" }
+            }
+          },
+          "cleaning_recommendation": {
+            "type": "object",
+            "properties": {
+              "is_cleaning_recommended": { "type": "boolean", "example": true },
+              "estimated_cleaning_cost": { "type": "number", "example": 30000, "description": "청소 예상 비용 (원)" },
+              "roi_if_cleaned": { "type": "number", "example": 20000, "description": "청소 시 예상 이익 (원)" },
+              "recommendation_message": { 
+                "type": "string", 
+                "example": "현재 오염으로 인해 월 5만 원 손실 중. 청소비(3만 원)보다 손실이 크므로 청소를 권장합니다." 
+              }
+            }
+          },
+          "cost_benefit_analysis": {
+            "type": "object",
+            "properties": {
+              "loss_without_cleaning": { "type": "number", "example": 150000, "description": "청소 미실시 시 3개월 예상 손실" },
+              "cost_with_cleaning": { "type": "number", "example": 90000, "description": "청소 비용 (3회)" },
+              "net_benefit": { "type": "number", "example": 60000, "description": "청소 실시 시 순이익" }
+            }
+          }
+        }
+      },
+      "CurrentWeather": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "object",
+            "properties": {
+              "nx": { "type": "integer", "example": 60, "description": "기상청 격자 X 좌표" },
+              "ny": { "type": "integer", "example": 127, "description": "기상청 격자 Y 좌표" }
+            }
+          },
+          "temperature": { "type": "number", "example": 5.2, "description": "현재 기온 (°C)" },
+          "humidity": { "type": "integer", "example": 45, "description": "습도 (%)" },
+          "precipitation_type": { 
+            "type": "string", 
+            "enum": ["none", "rain", "rain_snow", "snow", "shower"],
+            "example": "none",
+            "description": "강수형태 (PTY: 0=없음, 1=비, 2=비/눈, 3=눈, 4=소나기)"
+          },
+          "sky_condition": {
+            "type": "string",
+            "enum": ["clear", "partly_cloudy", "cloudy", "overcast"],
+            "example": "clear",
+            "description": "하늘 상태 (SKY: 1=맑음, 3=구름많음, 4=흐림)"
+          },
+          "wind_speed": { "type": "number", "example": 2.5, "description": "풍속 (m/s)" },
+          "precipitation_1h": { "type": "number", "example": 0, "description": "1시간 강수량 (mm)" },
+          "is_rainy": { "type": "boolean", "example": false, "description": "우천 여부" },
+          "condition_text": { "type": "string", "example": "맑음", "description": "날씨 상태 텍스트" },
+          "condition_icon": { "type": "string", "example": "sunny", "description": "날씨 아이콘 코드" },
+          "observed_at": { "type": "string", "format": "date-time", "example": "2026-01-16T14:00:00Z" },
+          "fetched_at": { "type": "string", "format": "date-time", "example": "2026-01-16T14:05:00Z" }
+        }
+      },
+      "ForecastItem": {
+        "type": "object",
+        "properties": {
+          "forecast_time": { "type": "string", "format": "date-time", "example": "2026-01-16T18:00:00Z" },
+          "temperature": { "type": "number", "example": 3.0 },
+          "humidity": { "type": "integer", "example": 50 },
+          "precipitation_probability": { "type": "integer", "example": 10, "description": "강수확률 (%)" },
+          "precipitation_type": { "type": "string", "enum": ["none", "rain", "rain_snow", "snow", "shower"] },
+          "sky_condition": { "type": "string", "enum": ["clear", "partly_cloudy", "cloudy", "overcast"] },
+          "condition_text": { "type": "string", "example": "구름많음" },
+          "condition_icon": { "type": "string", "example": "partly_cloudy" }
+        }
+      }
+    }
+  }
+}

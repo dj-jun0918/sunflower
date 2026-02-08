@@ -1,0 +1,51 @@
+# .gcloudignore
+# Cloud Build 업로드 시 제외할 파일 목록
+# .gitignore와 달리 모델 파일(*.pt, *.keras, *.onnx)은 포함해야 함!
+
+.git
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.eggs/
+*.egg-info/
+*.egg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Logs (로컬 로그는 제외)
+logs/
+*.log
+
+# Uploads & Snapshots (로컬 데이터 제외)
+uploads/
+snapshots/
+
+# Docker
+.docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 중요: 모델 파일은 업로드 해야 함!
+# (아래 줄들이 없으면 기본적으로 포함되지만, 명시적으로 적지 않아도 됨.
+# .gitignore에 있는 내용을 무시하고 이 파일 규칙을 따르게 됨)

@@ -1,0 +1,102 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:go_router/go_router.dart';
+import 'package:solar_eye_frontend/app/navigator_key.dart';
+
+class FCMService {
+  // Singleton instance
+  static final FCMService _instance = FCMService._internal();
+
+  factory FCMService() => _instance;
+
+  FCMService._internal();
+
+  final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
+
+  /// Initialize FCM Service
+  Future<void> initialize() async {
+    // 1. Request Permission
+    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+      alert: true,
+      announcement: false,
+      badge: true,
+      carPlay: false,
+      criticalAlert: false,
+      provisional: false,
+      sound: true,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      debugPrint('User granted permission');
+    } else if (settings.authorizationStatus ==
+        AuthorizationStatus.provisional) {
+      debugPrint('User granted provisional permission');
+    } else {
+      debugPrint('User declined or has not accepted permission');
+      return;
+    }
+
+    // 2. Get FCM Token
+    try {
+      String? token = await _firebaseMessaging.getToken();
+      debugPrint("FCM Token: $token");
+    } catch (e) {
+      debugPrint("Failed to get FCM token: $e");
+    }
+
+    // 3. Listen to Token Refresh
+    _firebaseMessaging.onTokenRefresh.listen((newToken) {
+      debugPrint("FCM Token Refreshed: $newToken");
+      // TODO: Update token in server via API
+    });
+
+    // 4. Handle Background Messages
+    // Note: onBackgroundMessage must be a top-level function.
+    // It is registered in main.dart to ensure it's available early.
+
+    // 5. Handle Foreground Messages
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      debugPrint('Got a message whilst in the foreground!');
+      debugPrint('Message data: ${message.data}');
+
+      if (message.notification != null) {
+        debugPrint(
+            'Message also contained a notification: ${message.notification}');
+        // TODO: Show local notification or custom UI overlay
+      }
+    });
+
+    // 6. Handle Message Opened App (Background -> Foreground)
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+
+    // 7. Handle Initial Message (Terminated -> Foreground)
+    RemoteMessage? initialMessage =
+        await _firebaseMessaging.getInitialMessage();
+
+    if (initialMessage != null) {
+      _handleMessage(initialMessage);
+    }
+  }
+
+  /// Handle navigation logic based on message data
+  void _handleMessage(RemoteMessage message) {
+    debugPrint("Handling notification interaction: ${message.data}");
+
+    final context = rootNavigatorKey.currentContext;
+    if (context == null) {
+      debugPrint("Navigator context is null, cannot navigate");
+      return;
+    }
+
+    if (message.data.containsKey('route')) {
+      final route = message.data['route'];
+      GoRouter.of(context).push(route);
+    } else if (message.data['type'] == 'alert') {
+      final id = message.data['id'];
+      if (id != null) {
+        GoRouter.of(context).push('/alerts/$id');
+      }
+    }
+  }
+}
