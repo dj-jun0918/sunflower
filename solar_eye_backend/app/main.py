@@ -140,6 +140,20 @@ def create_application() -> FastAPI:
 # FastAPI 앱 인스턴스
 app = create_application()
 
+@app.middleware("http")
+async def log_requests(request, call_next):
+    import time
+    start_time = time.time()
+    print(f"DEBUG: Request Started: {request.method} {request.url.path}")
+    try:
+        response = await call_next(request)
+        process_time = (time.time() - start_time) * 1000
+        print(f"DEBUG: Request Completed: {request.method} {request.url.path} - Status: {response.status_code} - Time: {process_time:.2f}ms")
+        return response
+    except Exception as e:
+        print(f"DEBUG: Request Failed (Middleware Catch): {request.method} {request.url.path} - Error: {e}")
+        raise
+
 
 @app.get("/", tags=["Root"])
 async def root():

@@ -95,22 +95,35 @@ class YOLODetector:
         
     def _load_model(self):
         """모델 파일 확장자에 따라 로드"""
+        print(f"DEBUG: YOLODetector loading model from {self.model_path}")
+        if not self.model_path.exists():
+             print(f"DEBUG: Model file does NOT exist: {self.model_path}")
+             logger.warning(f"모델 파일을 찾을 수 없습니다: {self.model_path}")
+             return
+
         suffix = self.model_path.suffix.lower()
-        if suffix == ".onnx":
-            self._load_onnx()
-        elif suffix == ".pkl":
-            self._load_pickle()
-        elif suffix == ".pt":
-            self._load_pt()
-        else:
-            logger.warning(f"알 수 없는 모델 확장자: {suffix}. 기본적으로 Pickle 로드 시도.")
-            self._load_pickle()
+        try:
+            if suffix == ".onnx":
+                self._load_onnx()
+            elif suffix == ".pkl":
+                self._load_pickle()
+            elif suffix == ".pt":
+                self._load_pt()
+            else:
+                logger.warning(f"알 수 없는 모델 확장자: {suffix}. 기본적으로 Pickle 로드 시도.")
+                print(f"DEBUG: Unknown suffix {suffix}, trying pickle.")
+                self._load_pickle()
+            print(f"DEBUG: Model loaded successfully. Type: {self.model_type}")
+        except Exception as e:
+            print(f"DEBUG: Error loading model {self.model_path}: {e}")
+            raise
 
     def _load_onnx(self):
         if ort is None:
             raise ImportError("onnxruntime이 설치되지 않았습니다.")
         
         logger.info(f"YOLO ONNX 모델 로드 중: {self.model_path}")
+        print(f"DEBUG: Loading ONNX model from {self.model_path}")
         self.session = ort.InferenceSession(
             str(self.model_path),
             providers=["CPUExecutionProvider"]
@@ -122,9 +135,11 @@ class YOLODetector:
 
     def _load_pickle(self):
         if not self.model_path.exists():
+            print(f"DEBUG: Pickle model path not found: {self.model_path}")
             return
 
         logger.info(f"YOLO Pickle 모델 로드 중: {self.model_path}")
+        print(f"DEBUG: Loading Pickle model from {self.model_path}")
         try:
             if joblib:
                 self.model = joblib.load(self.model_path)
@@ -134,37 +149,54 @@ class YOLODetector:
             
             self.model_type = "pickle"
             logger.info("YOLO Pickle 모델 로드 완료")
+            print("DEBUG: Pickle model loaded successfully")
             
         except Exception as e:
             logger.error(f"Pickle 모델 로드 실패: {e}")
+            print(f"DEBUG: Pickle load failed: {e}")
             raise e
 
     def _load_pt(self):
         """Ultralytics .pt 모델 로드"""
         if not self.model_path.exists():
+            print(f"DEBUG: PT model path not found: {self.model_path}")
             return
             
         try:
             from ultralytics import YOLO
             logger.info(f"YOLO PT 모델 로드 중: {self.model_path}")
+            print(f"DEBUG: Loading PT model from {self.model_path}")
             self.model = YOLO(str(self.model_path))
             self.model_type = "pt"
+            print("DEBUG: PT model loaded successfully")
             logger.info("YOLO PT 모델 로드 완료")
+            
+            # Warm up
+            # print("DEBUG: Warming up PT model logic (optional)...")
         except ImportError:
+            print("DEBUG: 'ultralytics' package missing!")
             raise ImportError("ultralytics가 설치되지 않았습니다. `pip install ultralytics` 필요")
         except Exception as e:
             logger.error(f"PT 모델 로드 실패: {e}")
+            print(f"DEBUG: PT model load failed: {e}")
             raise e
 
     def detect(self, image: np.ndarray) -> List[DetectionResult]:
         """이미지에서 패널 탐지"""
-        if self.model_type == "onnx":
-            return self._detect_onnx(image)
-        elif self.model_type in ["pickle", "pt"]:
-            return self._detect_ultralytics(image)
-        else:
-            # 모델 파일이 없었던 경우 등
-            logger.error("모델이 로드되지 않은 상태에서 detect 호출됨")
+        print(f"DEBUG: YOLODetector.detect called. Model type: {self.model_type}")
+        try:
+            if self.model_type == "onnx":
+                return self._detect_onnx(image)
+            elif self.model_type in ["pickle", "pt"]:
+                return self._detect_ultralytics(image)
+            else:
+                # 모델 파일이 없었던 경우 등
+                print("DEBUG: CRITICAL - Model not loaded, returning empty results.")
+                logger.error("모델이 로드되지 않은 상태에서 detect 호출됨")
+                return []
+        except Exception as e:
+            print(f"DEBUG: Exception during detection: {e}")
+            logger.error(f"Detection error: {e}")
             return []
 
     def _detect_ultralytics(self, image: np.ndarray) -> List[DetectionResult]:

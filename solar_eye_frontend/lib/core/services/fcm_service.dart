@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:solar_eye_frontend/app/navigator_key.dart';
 
 class FCMService {
@@ -41,6 +43,9 @@ class FCMService {
     try {
       String? token = await _firebaseMessaging.getToken();
       debugPrint("FCM Token: $token");
+      if (token != null) {
+        await _registerToken(token);
+      }
     } catch (e) {
       debugPrint("Failed to get FCM token: $e");
     }
@@ -48,7 +53,7 @@ class FCMService {
     // 3. Listen to Token Refresh
     _firebaseMessaging.onTokenRefresh.listen((newToken) {
       debugPrint("FCM Token Refreshed: $newToken");
-      // TODO: Update token in server via API
+      _registerToken(newToken);
     });
 
     // 4. Handle Background Messages
@@ -97,6 +102,37 @@ class FCMService {
       if (id != null) {
         GoRouter.of(context).push('/alerts/$id');
       }
+    }
+  }
+
+  /// Register FCM token to the server
+  Future<void> _registerToken(String token) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        debugPrint("User not logged in, skipping FCM token registration");
+        return;
+      }
+
+      final idToken = await user.getIdToken();
+      final dio = Dio(BaseOptions(
+        baseUrl:
+            'https://solar-eye-backend-gpu-709419717662.asia-southeast1.run.app',
+        headers: {'Authorization': 'Bearer $idToken'},
+      ));
+
+      final response = await dio.post(
+        '/api/v1/auth/fcm-token',
+        data: {'fcm_token': token},
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint("✅ FCM token registered successfully!");
+      } else {
+        debugPrint("❌ Failed to register FCM token: ${response.statusCode}");
+      }
+    } catch (e) {
+      debugPrint("❌ Error registering FCM token: $e");
     }
   }
 }

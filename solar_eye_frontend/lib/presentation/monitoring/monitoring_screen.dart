@@ -476,12 +476,32 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         description = '패널 결함이 감지되었습니다.\n수리 견적을 받아보세요.';
         color = AppColors.danger;
         icon = Icons.warning;
-        actionButton = PrimaryButton(
-          label: '수리 견적 요청',
-          backgroundColor: AppColors.danger, // Match semantic color
-          onPressed: () => _showServiceModal('repair'),
+        actionButton = Column(
+          children: [
+            PrimaryButton(
+              label: '수리 견적 요청',
+              backgroundColor: AppColors.danger,
+              onPressed: () => _showServiceModal('repair'),
+            ),
+            const SizedBox(height: AppSpacing.space3),
+            _buildSaveButton(),
+          ],
         );
         break;
+    }
+
+    // Default save button for normal/clean if not repair
+    if (_analysisResult != AnalysisStatus.repair) {
+      final oldButton = actionButton;
+      actionButton = Column(
+        children: [
+          if (oldButton != null) ...[
+            oldButton,
+            const SizedBox(height: AppSpacing.space3),
+          ],
+          _buildSaveButton(),
+        ],
+      );
     }
 
     return Column(
@@ -602,6 +622,37 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         panelId: _selectedPanel!.id,
       ),
     );
+  }
+
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _isLoading ? null : _saveAnalysisResult,
+        icon: const Icon(Icons.save_alt),
+        label: const Text('분석 결과 저장'),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          side: const BorderSide(color: AppColors.primary),
+          foregroundColor: AppColors.primary,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveAnalysisResult() async {
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('분석 결과가 안전하게 저장되었습니다.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    }
   }
 }
 

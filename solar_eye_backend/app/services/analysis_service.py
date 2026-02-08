@@ -91,15 +91,21 @@ class AnalysisService:
             )
             
             # 4. 결과 저장
-            saved_ids = []
             for detection in analysis_result.detections:
-                 # Save all detections including normal
-                if False: # Disable skipping normal detections
-                    continue
-                
+                # Create snapshot for each detection
+                snapshot_url = None
+                try:
+                    snapshot_url = await AnalysisService._save_snapshot(
+                        image=image,
+                        bbox=detection.bbox,
+                        defect_type=detection.defect_type
+                    )
+                except Exception as e:
+                    logger.error(f"Snapshot creation failed: {e}")
+
                 db_detection = Detection(
                     panel_id=facility_id,
-                    analysis_session_id=session.id,  # 세션 ID 연결
+                    analysis_session_id=session.id,
                     defect_type=detection.defect_type,
                     defect_subtype=detection.defect_subtype,
                     confidence=detection.class_confidence,
@@ -108,9 +114,11 @@ class AnalysisService:
                     bbox_width=detection.bbox.width,
                     bbox_height=detection.bbox.height,
                     detected_at=datetime.utcnow(),
+                    snapshot_url=snapshot_url,
+                    mask=detection.mask
                 )
                 db.add(db_detection)
-                
+            
             session.status = AnalysisStatus.COMPLETED
             await db.commit()
             
@@ -191,16 +199,34 @@ class AnalysisService:
         """
         try:
             # AI 파이프라인 로드
+            try:
+                import psutil
+                process = psutil.Process()
+                mem_info = process.memory_info()
+                print(f"DEBUG: Memory before pipeline load: {mem_info.rss / 1024 / 1024:.2f} MB")
+            except ImportError:
+                print("DEBUG: psutil not installed, skipping memory log")
+
             pipeline = get_pipeline()
+            
+            try:
+                if 'process' in locals():
+                    mem_info = process.memory_info()
+                    print(f"DEBUG: Memory after pipeline load: {mem_info.rss / 1024 / 1024:.2f} MB")
+            except: pass
             
             # 이미지 디코딩
             nparr = np.frombuffer(image_bytes, np.uint8)
             image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
             
+            print(f"DEBUG: Image decoded. Shape: {image.shape if image is not None else 'None'}")
+            
             if image is None:
+                print("DEBUG: Image decoding failed (None)")
                 raise ValueError("이미지 디코딩 실패")
             
             logger.info("AI 분석 시작")
+            print("DEBUG: Starting AI Pipeline analysis...")
             
             # AI 분석 실행
             results: List[PanelAnalysisResult] = pipeline.analyze(
@@ -208,6 +234,7 @@ class AnalysisService:
                 monitoring_type=monitoring_type
             )
             
+            print(f"DEBUG: Analysis completed. Results count: {len(results)}")
             logger.info(f"AI 분석 완료! 패널 {len(results)}개 탐지")
             
             # 결과 집계
@@ -322,8 +349,12 @@ class AnalysisService:
         
         # 결과 저장
         if save_results:
+            # Decode image for cropping snapshots
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
             saved_ids = await AnalysisService._save_detections(
-                db, panel_id, analysis_result
+                db, panel_id, analysis_result, original_image=image
             )
             logger.info(f"패널 {panel_id}: {len(saved_ids)}개 탐지 결과 저장")
         
@@ -332,14 +363,25 @@ class AnalysisService:
             try:
                 # 패널 소유자에게 알림
                 if panel.user_id and saved_ids:
-                    alert_service = AlertService()
-                    # 첫 번째 결함 탐지 결과로 알림 생성
-                    first_detection_id = saved_ids[0]
-                    await alert_service.create_detection_alert(
-                        db, first_detection_id, panel.user_id
-                    )
-                    alert_sent = True
-                    logger.info(f"패널 {panel_id}: 알림 전송 완료")
+                    alert_service = AlertService(db)
+                    # Get the first defect detection object
+                    stmt = select(Detection).where(Detection.id == saved_ids[0])
+                    res = await db.execute(stmt)
+                    first_detection = res.scalar_one_or_none()
+                    
+                    if first_detection:
+                        # Get user for FCM token
+                        res_user = await db.execute(select(User).where(User.id == panel.user_id))
+                        user = res_user.scalar_one_or_none()
+                        
+                        if user:
+                            await alert_service.create_alert_from_detection(
+                                detection=first_detection,
+                                user=user,
+                                panel=panel
+                            )
+                            alert_sent = True
+                            logger.info(f"패널 {panel_id}: 알림 전송 완료")
             except Exception as e:
                 logger.error(f"알림 전송 중 오류: {e}")
         
@@ -350,6 +392,7 @@ class AnalysisService:
         db: AsyncSession,
         panel_id: int,
         analysis_result: AnalysisResultSchema,
+        original_image: Optional[np.ndarray] = None
     ) -> List[int]:
         """
         탐지 결과를 DB에 저장
@@ -357,10 +400,18 @@ class AnalysisService:
         saved_ids = []
         
         for detection in analysis_result.detections:
-            # Save all detections including normal
-            if False: # Disable skipping normal detections
-                continue
-            
+            # Create snapshot if image is provided
+            snapshot_url = None
+            if original_image is not None:
+                try:
+                    snapshot_url = await AnalysisService._save_snapshot(
+                        image=original_image,
+                        bbox=detection.bbox,
+                        defect_type=detection.defect_type
+                    )
+                except Exception as e:
+                    logger.error(f"Snapshot creation failed: {e}")
+
             db_detection = Detection(
                 panel_id=panel_id,
                 defect_type=detection.defect_type,
@@ -370,7 +421,7 @@ class AnalysisService:
                 bbox_y=detection.bbox.y,
                 bbox_width=detection.bbox.width,
                 bbox_height=detection.bbox.height,
-                snapshot_url=None,
+                snapshot_url=snapshot_url,
                 detected_at=datetime.utcnow(),
                 mask=detection.mask,  # Save mask JSON
             )
@@ -382,3 +433,52 @@ class AnalysisService:
         await db.commit()
         
         return saved_ids
+    
+    @staticmethod
+    async def _save_snapshot(
+        image: np.ndarray,
+        bbox: BoundingBoxSchema,
+        defect_type: str
+    ) -> str:
+        """
+        탐지 부위를 크롭하여 이미지 파일로 저장
+        """
+        try:
+            h, w = image.shape[:2]
+            
+            # BBox 좌표 (픽셀 단위로 변환 필요할 수도 있으나 현재 스키마가 픽셀 단위인지 확인 가능)
+            # YOLO results usually give absolute pixel coords if we used .xyxy
+            # monitoring_screen assumes they are absolute if we draw them directly.
+            
+            x1 = int(max(0, bbox.x))
+            y1 = int(max(0, bbox.y))
+            x2 = int(min(w, bbox.x + bbox.width))
+            y2 = int(min(h, bbox.y + bbox.height))
+            
+            # 너무 작으면 최소 크기 확보 (여유분)
+            padding = 10
+            x1 = max(0, x1 - padding)
+            y1 = max(0, y1 - padding)
+            x2 = min(w, x2 + padding)
+            y2 = min(h, y2 + padding)
+            
+            crop = image[y1:y2, x1:x2]
+            
+            if crop.size == 0:
+                return None
+                
+            # 디렉토리 생성
+            now = datetime.now()
+            rel_path = f"snapshots/{now.strftime('%Y/%m/%d')}"
+            save_dir = Path("static") / rel_path
+            save_dir.mkdir(parents=True, exist_ok=True)
+            
+            file_name = f"{uuid.uuid4().hex[:12]}_{defect_type}.jpg"
+            save_path = save_dir / file_name
+            
+            cv2.imwrite(str(save_path), crop)
+            
+            return f"/static/{rel_path}/{file_name}"
+        except Exception as e:
+            logger.error(f"Error saving snapshot: {e}")
+            return None

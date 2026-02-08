@@ -32,7 +32,7 @@ dependencies:
   # Firebase
   firebase_core: ^2.27.0 # Adjusted for compatibility
   firebase_auth: ^4.17.9 # Adjusted for compatibility
-  # firebase_messaging: ^14.7.20 # Adjusted for compatibility
+  firebase_messaging: ^14.7.20 # Adjusted for compatibility
 
   # Social Login
   google_sign_in: ^6.2.1

@@ -65,9 +65,7 @@ REPAIR_COMPANIES = [
     summary="청소 업체 목록 조회",
     description="제휴된 태양광 패널 청소 업체 목록을 조회합니다."
 )
-async def get_cleaning_companies(
-    current_user: User = Depends(get_current_user)
-):
+async def get_cleaning_companies():
     return SuccessResponse(
         message="청소 업체 목록 조회 성공",
         data=CLEANING_COMPANIES
@@ -79,9 +77,7 @@ async def get_cleaning_companies(
     summary="수리 업체 목록 조회",
     description="제휴된 태양광 패널 수리 업체 목록을 조회합니다."
 )
-async def get_repair_companies(
-    current_user: User = Depends(get_current_user)
-):
+async def get_repair_companies():
     return SuccessResponse(
         message="수리 업체 목록 조회 성공",
         data=REPAIR_COMPANIES
