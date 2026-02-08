@@ -42,16 +42,25 @@ RUN pip install --no-cache-dir --upgrade pip \
 # 6. Copy Application Code
 COPY . .
 
-# 7. Create directories for uploads and snapshots
+# 7. Verify AI Models are present (CRITICAL - fail build if missing)
+RUN echo "=== Checking AI Models ===" && \
+    ls -la app/ai/models/ && \
+    test -f app/ai/models/yolo26m40000_weights_best.pt || (echo "ERROR: CCTV YOLO model missing!" && exit 1) && \
+    test -f app/ai/models/yolo26m80k_weights_best.pt || (echo "ERROR: Drone YOLO model missing!" && exit 1) && \
+    test -f app/ai/models/best_solar_model.keras || (echo "ERROR: Keras model missing!" && exit 1) && \
+    echo "=== All Required AI Models Present ==="
+
+# 8. Create directories for uploads and snapshots
 RUN mkdir -p uploads snapshots logs
 
-# 8. Expose Port
+# 9. Expose Port
 EXPOSE 8000
 
-# 9. Health Check
+# 10. Health Check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
-# 10. Run Application
-# Gunicorn + Uvicorn workers for production
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+# 11. Run Application
+# 11. Run Application
+COPY test_ai_crash.py .
+CMD ["sh", "-c", "python test_ai_crash.py && gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 0 --log-level debug --capture-output --enable-stdio-inheritance"]
