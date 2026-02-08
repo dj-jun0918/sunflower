@@ -24,10 +24,10 @@ wheels/
 venv/
 .venv/
 
-# AI Models (Do NOT ignore if they are needed in the build, 
-# but usually they are too big for git. If they are in the repo, 
-# they will be uploaded. We keep them for now since user needs them)
-# app/ai/models/ 
+# AI Models (Unused - Excluded to speed up build)
+app/ai/models/RealESRGAN_RealESRGAN_x4plus.pth
+app/ai/models/final_weighted_model/
+app/ai/models/final_weighted_model.zip
 
 # Logs and Data
 logs/
