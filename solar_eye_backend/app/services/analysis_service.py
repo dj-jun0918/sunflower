@@ -47,8 +47,7 @@ class AnalysisService:
         """
         이미지 업로드 및 분석 요청 처리
         """
-        # 패널 검증 및 자동 생성 로직
-        # facility_id가 1이거나 사용자의 소유가 아닌 경우 사용자의 첫 번째 패널을 찾거나 생성함
+        # 패널 검증 및 자동 생성 로직 (Original Maintainer logic)
         stmt = select(Panel).where(Panel.id == facility_id, Panel.user_id == user.id)
         res = await db.execute(stmt)
         panel = res.scalar_one_or_none()
@@ -103,19 +102,29 @@ class AnalysisService:
         await db.commit()
         await db.refresh(session)
         
-        # 3. 비동기/동기 분석 실행 (현재는 동기 실행)
+        # 3. 분석 수행 (CCTV 전용 로직 병합)
         try:
             image_bytes = file_path.read_bytes()
-            # 이미지 디코딩 (스냅샷 크롭용)
+            
+            if monitoring_type == "cctv":
+                # lssunflower 브랜치의 이미지 생성 포함 분석 로직
+                analysis_result, _ = await AnalysisService.analyze_cctv_with_images(
+                    image_bytes, 
+                    session.id
+                )
+            else:
+                # 일반 분석 로직
+                analysis_result = await AnalysisService.analyze_image_bytes(
+                    image_bytes, 
+                    monitoring_type=monitoring_type
+                )
+            
+            # 4. 결과 저장
+            # decode image for snapshots
             nparr = np.frombuffer(image_bytes, np.uint8)
             cv2_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
-            analysis_result = await AnalysisService.analyze_image_bytes(
-                image_bytes, 
-                monitoring_type=monitoring_type
-            )
-            
-            # 4. 결과 저장
+            added_detections = []
             for detection in analysis_result.detections:
                 # Create snapshot for each detection
                 snapshot_url = None
@@ -143,13 +152,11 @@ class AnalysisService:
                     mask=detection.mask
                 )
                 db.add(db_detection)
+                added_detections.append(db_detection)
             
             # 5. 패널 상태 동기화
             # 현재 분석 세션의 탐지 결과들을 바탕으로 패널 상태 업데이트
-            stmt = select(Detection).where(Detection.analysis_session_id == session.id)
-            res = await db.execute(stmt)
-            session_detections = res.scalars().all()
-            await AnalysisService._update_panel_status(db, facility_id, session_detections)
+            await AnalysisService._update_panel_status(db, facility_id, added_detections)
             
             session.status = AnalysisStatus.COMPLETED
             await db.commit()
@@ -168,7 +175,7 @@ class AnalysisService:
         analysis_id: uuid.UUID
     ) -> Optional[AnalysisResultResponse]:
         """
-        분석 결과 조회
+        분석 결과 조회 (CCTV 상세 이미지 필드 매핑 추가)
         """
         stmt = (
             select(AnalysisSession)
@@ -198,6 +205,31 @@ class AnalysisService:
         
         response = AnalysisResultResponse.model_validate(session)
         response.detections = detection_responses
+
+        # CCTV 분석 결과 이미지 URL 추가 (lssunflower 프론트엔드 호환용)
+        if session.type == MonitoringType.CCTV:
+            result_dir = Path("static/results") / str(analysis_id)
+            if result_dir.exists():
+                from app.schemas.monitoring import CropImageSchema
+                crop_images = []
+                for i, det in enumerate(session.detections):
+                    enhanced_path = result_dir / f"enhanced_{i}.jpg"
+                    mask_path = result_dir / f"mask_{i}.jpg"
+                    
+                    if enhanced_path.exists() and mask_path.exists():
+                        crop_images.append(CropImageSchema(
+                            url=f"/static/results/{analysis_id}/enhanced_{i}.jpg",
+                            mask_url=f"/static/results/{analysis_id}/mask_{i}.jpg",
+                            bbox={"x": det.bbox_x, "y": det.bbox_y, "width": det.bbox_width, "height": det.bbox_height},
+                            defect_type=det.defect_type.value,
+                            confidence=det.confidence
+                        ))
+                response.crop_images = crop_images
+                
+                if crop_images:
+                    response.enhanced_image_url = crop_images[0].url
+                    response.mask_image_url = crop_images[0].mask_url
+        
         return response
 
     @staticmethod

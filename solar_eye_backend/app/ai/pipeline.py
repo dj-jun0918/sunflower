@@ -271,13 +271,13 @@ def get_pipeline() -> SolarPanelPipeline:
     
     if _pipeline_instance is None:
         # 모델 경로 설정
-        # app/ai/models로 모든 모델이 집중되어 있다고 가정 (User confirmed this path)
+        # app/ai/models에 모든 모델이 집중되어 있다고 가정
         base_path = Path(__file__).parent / "models" 
         
-        # Models
-        cctv_model = base_path / "yolo26m40000_weights_best.pt"
-        drone_model = base_path / "yolo26m80k_weights_best.pt"
-        keras_model = base_path / "best_solar_model.keras"
+        # Models (Updated to match lssunflower branch deployment)
+        cctv_model = base_path / "cctv-yolo26m40000.pt"
+        drone_model = base_path / "airshot-yolo26m80k.pt"
+        keras_model = base_path / "effcienNetmodels.keras"
         esrgan_model = base_path / "RealESRGAN.pth"
         segformer_model = base_path / "segformer"
         
