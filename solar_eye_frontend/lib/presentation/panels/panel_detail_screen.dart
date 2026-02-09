@@ -89,8 +89,8 @@ class PanelDetailScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.space5),
           ],
 
-          // 최근 탐지 이력 (Placeholder)
-          _buildRecentDetections(),
+          // 최근 탐지 이력
+          _buildRecentDetections(ref),
         ],
       ),
     );
@@ -235,29 +235,84 @@ class PanelDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRecentDetections() {
+  Widget _buildRecentDetections(WidgetRef ref) {
+    final historyAsync = ref.watch(panelHistoryProvider(panelId));
+
     return _SectionCard(
       title: '최근 탐지 이력',
       icon: Icons.history,
       children: [
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.space4),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.search_off,
-                  size: 40,
-                  color: AppColors.text3,
-                ),
-                const SizedBox(height: AppSpacing.space2),
-                Text(
-                  '탐지 이력이 없습니다',
-                  style: AppTypography.bodyM.copyWith(color: AppColors.text3),
-                ),
-              ],
-            ),
+        historyAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(AppSpacing.space4),
+            child: Center(child: CircularProgressIndicator()),
           ),
+          error: (error, _) => Padding(
+            padding: const EdgeInsets.all(AppSpacing.space4),
+            child: Text('이력을 불러오지 못했습니다: $error'),
+          ),
+          data: (sessions) {
+            if (sessions.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.space4),
+                  child: Column(
+                    children: [
+                      Icon(Icons.search_off, size: 40, color: AppColors.text3),
+                      const SizedBox(height: AppSpacing.space2),
+                      Text(
+                        '탐지 이력이 없습니다',
+                        style: AppTypography.bodyM
+                            .copyWith(color: AppColors.text3),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: sessions.take(5).map((session) {
+                final hasDefect = session.detections.any((d) =>
+                    d.type.toString().contains('crack') ||
+                    d.type.toString().contains('defect'));
+                final hasSoiling = session.detections
+                    .any((d) => d.type.toString().contains('soiling'));
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: hasDefect
+                        ? AppColors.danger.withValues(alpha: 0.1)
+                        : hasSoiling
+                            ? AppColors.warning.withValues(alpha: 0.1)
+                            : AppColors.success.withValues(alpha: 0.1),
+                    child: Icon(
+                      hasDefect
+                          ? Icons.error_outline
+                          : hasSoiling
+                              ? Icons.warning_amber
+                              : Icons.check_circle_outline,
+                      color: hasDefect
+                          ? AppColors.danger
+                          : hasSoiling
+                              ? AppColors.warning
+                              : AppColors.success,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    '${session.type.toUpperCase()} 분석',
+                    style: AppTypography.labelL,
+                  ),
+                  subtitle: Text(_formatDateTime(session.createdAt)),
+                  trailing: const Icon(Icons.chevron_right, size: 16),
+                  onTap: () {
+                    // TODO: 결과 상세 페이지로 이동 (필요 시)
+                  },
+                );
+              }).toList(),
+            );
+          },
         ),
       ],
     );

@@ -8,10 +8,8 @@ part 'api_client.g.dart';
 
 @riverpod
 Dio apiClient(ApiClientRef ref) {
-  // .env에서 URL을 가져오거나, 없으면 배포된 Cloud Run URL 사용
-  // ⚡ DEMO FIX: Hardcoded to Cloud Run GPU Server
-  String baseUrl =
-      'https://solar-eye-backend-gpu-709419717662.asia-southeast1.run.app';
+  // .env에서 URL을 가져오거나, 없으면 로컬 백엔드 URL 사용
+  String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
 
   debugPrint('🔌 Connecting to API: $baseUrl');
 

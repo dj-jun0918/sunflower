@@ -9,6 +9,7 @@ import 'package:solar_eye_frontend/core/theme/app_spacing.dart';
 import 'package:solar_eye_frontend/core/theme/app_typography.dart';
 import 'package:solar_eye_frontend/data/api/api_client.dart';
 import 'package:solar_eye_frontend/data/provider/dashboard_provider.dart';
+import 'package:solar_eye_frontend/data/provider/panel_provider.dart';
 import 'package:solar_eye_frontend/domain/model/panel.dart';
 import 'package:solar_eye_frontend/presentation/widgets/buttons/primary_button.dart';
 
@@ -40,6 +41,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
   int _normalCount = 0;
   int _defectCount = 0;
   int _soilingCount = 0;
+  Map<String, dynamic>? _analysisResultMeta; // 분석 결과 메타데이터 저장
   List<dynamic> _detections = []; // 바운딩 박스 데이터
 
   List<Panel> _panels = [];
@@ -79,19 +81,26 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
   }
 
   Future<void> _fetchPanels() async {
+    debugPrint('🚀 [Monitoring] Fetching panels...');
     try {
       final repository = ref.read(dashboardRepositoryProvider);
       final panels = await repository.getPanels();
+      debugPrint('✅ [Monitoring] Fetched ${panels.length} panels');
+
       if (mounted) {
         setState(() {
           _panels = panels;
           if (_panels.isNotEmpty) {
             _selectedPanel = _panels.first;
+            debugPrint(
+                '📍 [Monitoring] Selected first panel: ${_selectedPanel?.name}');
+          } else {
+            debugPrint('⚠️ [Monitoring] Panel list is EMPTY from server');
           }
         });
       }
     } catch (e) {
-      debugPrint('Failed to fetch panels: $e');
+      debugPrint('❌ [Monitoring] Failed to fetch panels: $e');
     }
   }
 
@@ -122,10 +131,9 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
   Future<void> _startAnalysis(XFile image) async {
     debugPrint('Step 1: _startAnalysis called');
 
-    // Bypass strict check: Use selected panel OR default to ID 1
-    // Panel.id is String, but backend expects int
-    final int panelId = int.tryParse(_selectedPanel?.id ?? '') ?? 1;
-    debugPrint('Step 2: Using Panel ID: $panelId');
+    // Use selected panel OR 0 (backend will auto-assign/create)
+    final int panelId = int.tryParse(_selectedPanel?.id ?? '') ?? 0;
+    debugPrint('Step 2: Using Panel ID: $panelId (0 means auto-assign)');
 
     try {
       final dio = ref.read(apiClientProvider);
@@ -224,13 +232,18 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
 
     // Logic update: In our mocked services (previous session), defect_type might be "crack", "soiling".
     // Let's refine based on DetectionResponse schema which I'm checking next, but for now assuming 'defect_type' field.
-    int soilings = dets.where((d) => d['defectType'] == 'soiling').length;
+    int soilings = dets
+        .where((d) => (d['defectType'] ?? d['defect_type']) == 'soiling')
+        .length;
     int cracks = dets
-        .where((d) => d['defectType'] == 'crack' || d['defectType'] == 'defect')
+        .where((d) =>
+            (d['defectType'] ?? d['defect_type']) == 'crack' ||
+            (d['defectType'] ?? d['defect_type']) == 'defect')
         .length;
     int normals = total - cracks - soilings; // or check explicitly
 
     setState(() {
+      _analysisResultMeta = data; // 메타데이터 저장
       _totalPanels = total > 0 ? total : 0;
       _normalCount = normals;
       _defectCount = cracks;
@@ -243,7 +256,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
           'y': bbox['y'],
           'width': bbox['width'],
           'height': bbox['height'],
-          'type': d['defectType'] ?? 'unknown',
+          'type': d['defectType'] ?? d['defect_type'] ?? 'unknown',
           'confidence': d['confidence'] ?? 0.0,
           'mask': d['mask'] != null
               ? jsonDecode(d['mask'])
@@ -284,6 +297,9 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+        '🏗️ [Monitoring] building screen: panel=${_selectedPanel?.id}, isLoading=$_isLoading, result=$_analysisResult');
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -611,45 +627,75 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
   }
 
   void _showServiceModal(String type) {
-    if (_selectedPanel == null) return;
+    debugPrint('🔘 [Monitoring] _showServiceModal clicked: $type');
 
+    // Use selected panel ID or fallback to "1"
+    final String panelId = _selectedPanel?.id ?? "1";
+    final String panelName = _selectedPanel?.name ?? "기본 패널";
+
+    debugPrint(
+        '✅ [Monitoring] Opening Service Modal for Panel: $panelName($panelId)');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => ServiceListModal(
         type: type,
-        panelId: _selectedPanel!.id,
+        panelId: panelId,
       ),
     );
   }
 
   Widget _buildSaveButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: _isLoading ? null : _saveAnalysisResult,
-        icon: const Icon(Icons.save_alt),
-        label: const Text('분석 결과 저장'),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          side: const BorderSide(color: AppColors.primary),
-          foregroundColor: AppColors.primary,
-        ),
+    return Padding(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.screenPaddingH),
+      child: PrimaryButton(
+        label: '서버에 저장하기',
+        icon: Icons.save_outlined,
+        onPressed: _isLoading ? null : () => _saveAnalysisResult(),
+        isLoading: _isLoading,
       ),
     );
   }
 
   Future<void> _saveAnalysisResult() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 800));
+    debugPrint('🔘 [Monitoring] _saveAnalysisResult clicked');
 
-    if (mounted) {
-      setState(() => _isLoading = false);
+    // 서버에서 받은 panel_id가 있으면 우선 사용, 없으면 선택된 패널 ID 사용
+    final String? resultPanelId =
+        (_analysisResultMeta?['panel_id'] ?? _analysisResultMeta?['panelId'])
+            ?.toString();
+    final String panelId = resultPanelId ?? _selectedPanel?.id ?? "0";
+
+    if (panelId == "0") {
+      debugPrint('⚠️ [Monitoring] No valid panel ID to invalidate');
+      return;
+    }
+
+    debugPrint('🚀 [Monitoring] Invalidating providers for panel: $panelId');
+    try {
+      // Refresh related providers to reflect changes in details/history screens
+      ref.invalidate(panelListProvider);
+      ref.invalidate(panelDetailProvider(panelId));
+      ref.invalidate(panelHistoryProvider(panelId));
+
+      debugPrint('✨ [Monitoring] Providers invalidated successfully');
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('분석 결과가 안전하게 저장되었습니다.'),
+          content: Text('탐지 결과가 서버에 자동 저장되었습니다.'),
           backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ [Monitoring] ERROR during invalidation: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('결과 반영 실패: $e'),
+          backgroundColor: AppColors.danger,
         ),
       );
     }

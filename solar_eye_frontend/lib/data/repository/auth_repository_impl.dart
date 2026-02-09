@@ -7,7 +7,7 @@ import 'package:dio/dio.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final FirebaseAuth _firebaseAuth;
-  final GoogleSignIn _googleSignIn;
+  final GoogleSignIn? _googleSignIn;
   final Dio _dio;
 
   AuthRepositoryImpl(this._firebaseAuth, this._googleSignIn, this._dio);
@@ -33,7 +33,7 @@ class AuthRepositoryImpl implements AuthRepository {
         }
       } else {
         // Native (Android/iOS): Use GoogleSignIn plugin
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
 
         if (googleUser == null) {
           // The user canceled the sign-in
@@ -89,6 +89,6 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> signOut() async {
     await _firebaseAuth.signOut();
-    await _googleSignIn.signOut();
+    await _googleSignIn?.signOut();
   }
 }

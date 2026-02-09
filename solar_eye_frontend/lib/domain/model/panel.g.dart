@@ -12,18 +12,18 @@ _$PanelImpl _$$PanelImplFromJson(Map<String, dynamic> json) => _$PanelImpl(
       location: json['location'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      rtspUrl: json['rtspUrl'] as String?,
+      rtspUrl: json['rtsp_url'] as String?,
       status: $enumDecodeNullable(_$PanelStatusEnumMap, json['status']) ??
           PanelStatus.normal,
-      lastDetectionAt: json['lastDetectionAt'] == null
+      lastDetectionAt: json['last_detection_at'] == null
           ? null
-          : DateTime.parse(json['lastDetectionAt'] as String),
-      createdAt: json['createdAt'] == null
+          : DateTime.parse(json['last_detection_at'] as String),
+      createdAt: json['created_at'] == null
           ? null
-          : DateTime.parse(json['createdAt'] as String),
-      updatedAt: json['updatedAt'] == null
+          : DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] == null
           ? null
-          : DateTime.parse(json['updatedAt'] as String),
+          : DateTime.parse(json['updated_at'] as String),
     );
 
 Map<String, dynamic> _$$PanelImplToJson(_$PanelImpl instance) =>
@@ -33,11 +33,11 @@ Map<String, dynamic> _$$PanelImplToJson(_$PanelImpl instance) =>
       'location': instance.location,
       'latitude': instance.latitude,
       'longitude': instance.longitude,
-      'rtspUrl': instance.rtspUrl,
+      'rtsp_url': instance.rtspUrl,
       'status': _$PanelStatusEnumMap[instance.status]!,
-      'lastDetectionAt': instance.lastDetectionAt?.toIso8601String(),
-      'createdAt': instance.createdAt?.toIso8601String(),
-      'updatedAt': instance.updatedAt?.toIso8601String(),
+      'last_detection_at': instance.lastDetectionAt?.toIso8601String(),
+      'created_at': instance.createdAt?.toIso8601String(),
+      'updated_at': instance.updatedAt?.toIso8601String(),
     };
 
 const _$PanelStatusEnumMap = {
@@ -53,7 +53,7 @@ _$PanelRequestImpl _$$PanelRequestImplFromJson(Map<String, dynamic> json) =>
       location: json['location'] as String,
       latitude: (json['latitude'] as num).toDouble(),
       longitude: (json['longitude'] as num).toDouble(),
-      rtspUrl: json['rtspUrl'] as String?,
+      rtspUrl: json['rtsp_url'] as String?,
     );
 
 Map<String, dynamic> _$$PanelRequestImplToJson(_$PanelRequestImpl instance) =>
@@ -62,5 +62,5 @@ Map<String, dynamic> _$$PanelRequestImplToJson(_$PanelRequestImpl instance) =>
       'location': instance.location,
       'latitude': instance.latitude,
       'longitude': instance.longitude,
-      'rtspUrl': instance.rtspUrl,
+      'rtsp_url': instance.rtspUrl,
     };

@@ -9,25 +9,25 @@ part of 'detection.dart';
 _$DetectionImpl _$$DetectionImplFromJson(Map<String, dynamic> json) =>
     _$DetectionImpl(
       id: json['id'] as String,
-      panelId: json['panelId'] as String,
-      panelName: json['panelName'] as String,
+      panelId: json['panel_id'] as String,
+      panelName: json['panel_name'] as String,
       type: $enumDecode(_$DetectionTypeEnumMap, json['type']),
       confidence: (json['confidence'] as num).toDouble(),
-      detectedAt: DateTime.parse(json['detectedAt'] as String),
-      imageUrl: json['imageUrl'] as String?,
-      alertId: json['alertId'] as String?,
+      detectedAt: DateTime.parse(json['detected_at'] as String),
+      imageUrl: json['image_url'] as String?,
+      alertId: json['alert_id'] as String?,
     );
 
 Map<String, dynamic> _$$DetectionImplToJson(_$DetectionImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'panelId': instance.panelId,
-      'panelName': instance.panelName,
+      'panel_id': instance.panelId,
+      'panel_name': instance.panelName,
       'type': _$DetectionTypeEnumMap[instance.type]!,
       'confidence': instance.confidence,
-      'detectedAt': instance.detectedAt.toIso8601String(),
-      'imageUrl': instance.imageUrl,
-      'alertId': instance.alertId,
+      'detected_at': instance.detectedAt.toIso8601String(),
+      'image_url': instance.imageUrl,
+      'alert_id': instance.alertId,
     };
 
 const _$DetectionTypeEnumMap = {

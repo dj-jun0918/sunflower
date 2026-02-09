@@ -22,11 +22,11 @@ final firebaseAuthProvider = AutoDisposeProvider<FirebaseAuth>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FirebaseAuthRef = AutoDisposeProviderRef<FirebaseAuth>;
-String _$googleSignInHash() => r'705159bfbb6dbdbb6d8e00e77f2d1b7d00842a64';
+String _$googleSignInHash() => r'898c6b73701d845943cecb282b084a26a1b6dc35';
 
 /// See also [googleSignIn].
 @ProviderFor(googleSignIn)
-final googleSignInProvider = AutoDisposeProvider<GoogleSignIn>.internal(
+final googleSignInProvider = AutoDisposeProvider<GoogleSignIn?>.internal(
   googleSignIn,
   name: r'googleSignInProvider',
   debugGetCreateSourceHash:
@@ -37,8 +37,8 @@ final googleSignInProvider = AutoDisposeProvider<GoogleSignIn>.internal(
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef GoogleSignInRef = AutoDisposeProviderRef<GoogleSignIn>;
-String _$authRepositoryHash() => r'ea0398205e14fc38fae99eeebcfc780869b28b16';
+typedef GoogleSignInRef = AutoDisposeProviderRef<GoogleSignIn?>;
+String _$authRepositoryHash() => r'85192aa5c193a350e6a5adcc8d407b220ba61d07';
 
 /// See also [authRepository].
 @ProviderFor(authRepository)

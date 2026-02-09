@@ -26,10 +26,14 @@ mixin _$Panel {
   String? get location => throw _privateConstructorUsedError;
   double? get latitude => throw _privateConstructorUsedError;
   double? get longitude => throw _privateConstructorUsedError;
+  @JsonKey(name: 'rtsp_url')
   String? get rtspUrl => throw _privateConstructorUsedError;
   PanelStatus get status => throw _privateConstructorUsedError;
+  @JsonKey(name: 'last_detection_at')
   DateTime? get lastDetectionAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'created_at')
   DateTime? get createdAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'updated_at')
   DateTime? get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this Panel to a JSON map.
@@ -52,11 +56,11 @@ abstract class $PanelCopyWith<$Res> {
       String? location,
       double? latitude,
       double? longitude,
-      String? rtspUrl,
+      @JsonKey(name: 'rtsp_url') String? rtspUrl,
       PanelStatus status,
-      DateTime? lastDetectionAt,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+      @JsonKey(name: 'last_detection_at') DateTime? lastDetectionAt,
+      @JsonKey(name: 'created_at') DateTime? createdAt,
+      @JsonKey(name: 'updated_at') DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -143,11 +147,11 @@ abstract class _$$PanelImplCopyWith<$Res> implements $PanelCopyWith<$Res> {
       String? location,
       double? latitude,
       double? longitude,
-      String? rtspUrl,
+      @JsonKey(name: 'rtsp_url') String? rtspUrl,
       PanelStatus status,
-      DateTime? lastDetectionAt,
-      DateTime? createdAt,
-      DateTime? updatedAt});
+      @JsonKey(name: 'last_detection_at') DateTime? lastDetectionAt,
+      @JsonKey(name: 'created_at') DateTime? createdAt,
+      @JsonKey(name: 'updated_at') DateTime? updatedAt});
 }
 
 /// @nodoc
@@ -228,11 +232,11 @@ class _$PanelImpl implements _Panel {
       this.location,
       this.latitude,
       this.longitude,
-      this.rtspUrl,
+      @JsonKey(name: 'rtsp_url') this.rtspUrl,
       this.status = PanelStatus.normal,
-      this.lastDetectionAt,
-      this.createdAt,
-      this.updatedAt});
+      @JsonKey(name: 'last_detection_at') this.lastDetectionAt,
+      @JsonKey(name: 'created_at') this.createdAt,
+      @JsonKey(name: 'updated_at') this.updatedAt});
 
   factory _$PanelImpl.fromJson(Map<String, dynamic> json) =>
       _$$PanelImplFromJson(json);
@@ -249,15 +253,19 @@ class _$PanelImpl implements _Panel {
   @override
   final double? longitude;
   @override
+  @JsonKey(name: 'rtsp_url')
   final String? rtspUrl;
   @override
   @JsonKey()
   final PanelStatus status;
   @override
+  @JsonKey(name: 'last_detection_at')
   final DateTime? lastDetectionAt;
   @override
+  @JsonKey(name: 'created_at')
   final DateTime? createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   final DateTime? updatedAt;
 
   @override
@@ -316,11 +324,11 @@ abstract class _Panel implements Panel {
       final String? location,
       final double? latitude,
       final double? longitude,
-      final String? rtspUrl,
+      @JsonKey(name: 'rtsp_url') final String? rtspUrl,
       final PanelStatus status,
-      final DateTime? lastDetectionAt,
-      final DateTime? createdAt,
-      final DateTime? updatedAt}) = _$PanelImpl;
+      @JsonKey(name: 'last_detection_at') final DateTime? lastDetectionAt,
+      @JsonKey(name: 'created_at') final DateTime? createdAt,
+      @JsonKey(name: 'updated_at') final DateTime? updatedAt}) = _$PanelImpl;
 
   factory _Panel.fromJson(Map<String, dynamic> json) = _$PanelImpl.fromJson;
 
@@ -336,14 +344,18 @@ abstract class _Panel implements Panel {
   @override
   double? get longitude;
   @override
+  @JsonKey(name: 'rtsp_url')
   String? get rtspUrl;
   @override
   PanelStatus get status;
   @override
+  @JsonKey(name: 'last_detection_at')
   DateTime? get lastDetectionAt;
   @override
+  @JsonKey(name: 'created_at')
   DateTime? get createdAt;
   @override
+  @JsonKey(name: 'updated_at')
   DateTime? get updatedAt;
 
   /// Create a copy of Panel
@@ -364,6 +376,7 @@ mixin _$PanelRequest {
   String get location => throw _privateConstructorUsedError;
   double get latitude => throw _privateConstructorUsedError;
   double get longitude => throw _privateConstructorUsedError;
+  @JsonKey(name: 'rtsp_url')
   String? get rtspUrl => throw _privateConstructorUsedError;
 
   /// Serializes this PanelRequest to a JSON map.
@@ -387,7 +400,7 @@ abstract class $PanelRequestCopyWith<$Res> {
       String location,
       double latitude,
       double longitude,
-      String? rtspUrl});
+      @JsonKey(name: 'rtsp_url') String? rtspUrl});
 }
 
 /// @nodoc
@@ -449,7 +462,7 @@ abstract class _$$PanelRequestImplCopyWith<$Res>
       String location,
       double latitude,
       double longitude,
-      String? rtspUrl});
+      @JsonKey(name: 'rtsp_url') String? rtspUrl});
 }
 
 /// @nodoc
@@ -504,7 +517,7 @@ class _$PanelRequestImpl implements _PanelRequest {
       required this.location,
       required this.latitude,
       required this.longitude,
-      this.rtspUrl});
+      @JsonKey(name: 'rtsp_url') this.rtspUrl});
 
   factory _$PanelRequestImpl.fromJson(Map<String, dynamic> json) =>
       _$$PanelRequestImplFromJson(json);
@@ -518,6 +531,7 @@ class _$PanelRequestImpl implements _PanelRequest {
   @override
   final double longitude;
   @override
+  @JsonKey(name: 'rtsp_url')
   final String? rtspUrl;
 
   @override
@@ -567,7 +581,7 @@ abstract class _PanelRequest implements PanelRequest {
       required final String location,
       required final double latitude,
       required final double longitude,
-      final String? rtspUrl}) = _$PanelRequestImpl;
+      @JsonKey(name: 'rtsp_url') final String? rtspUrl}) = _$PanelRequestImpl;
 
   factory _PanelRequest.fromJson(Map<String, dynamic> json) =
       _$PanelRequestImpl.fromJson;
@@ -581,6 +595,7 @@ abstract class _PanelRequest implements PanelRequest {
   @override
   double get longitude;
   @override
+  @JsonKey(name: 'rtsp_url')
   String? get rtspUrl;
 
   /// Create a copy of PanelRequest

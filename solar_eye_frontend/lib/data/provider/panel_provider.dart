@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:solar_eye_frontend/data/api/api_client.dart';
 import 'package:solar_eye_frontend/data/repository/panel_repository_impl.dart';
+import 'package:solar_eye_frontend/domain/model/monitoring.dart';
 import 'package:solar_eye_frontend/domain/model/panel.dart';
 import 'package:solar_eye_frontend/domain/repository/panel_repository.dart';
 
@@ -27,6 +27,14 @@ Future<List<Panel>> panelList(PanelListRef ref) async {
 Future<Panel> panelDetail(PanelDetailRef ref, String panelId) async {
   final repository = ref.watch(panelRepositoryProvider);
   return repository.getPanel(panelId);
+}
+
+/// 패널 이력 Provider
+@riverpod
+Future<List<AnalysisSession>> panelHistory(
+    PanelHistoryRef ref, String panelId) async {
+  final repository = ref.watch(panelRepositoryProvider);
+  return repository.getPanelHistory(panelId);
 }
 
 /// 패널 삭제/수정/생성 Notifier

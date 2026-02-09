@@ -74,13 +74,16 @@ class DashboardRepositoryImpl implements DashboardRepository {
 
             final Map<String, dynamic> transformed = {
               'id': e['id'].toString(),
-              'panelId': e['panelId'].toString(),
-              'panelName': e['panelName'] ?? '패널 ${e['panelId']}',
+              'panel_id':
+                  e['panelId']?.toString() ?? e['panel_id']?.toString() ?? '0',
+              'panel_name': e['panelName'] ?? e['panel_name'] ?? '알 수 없는 패널',
               'type': mappedType,
-              'confidence': e['confidence'] ?? 0.0,
-              'detectedAt': e['detectedAt'],
-              'imageUrl': e['snapshotUrl'] ?? e['imageUrl'],
-              'alertId': e['alertId']?.toString(),
+              'confidence': (e['confidence'] ?? 0.0).toDouble(),
+              'detected_at': e['detectedAt'] ??
+                  e['detected_at'] ??
+                  DateTime.now().toIso8601String(),
+              'image_url': e['snapshotUrl'] ?? e['image_url'] ?? e['imageUrl'],
+              'alert_id': e['alertId']?.toString() ?? e['alert_id']?.toString(),
             };
             return Detection.fromJson(transformed);
           }).toList();

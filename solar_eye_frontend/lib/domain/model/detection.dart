@@ -8,13 +8,13 @@ part 'detection.g.dart';
 class Detection with _$Detection {
   const factory Detection({
     required String id,
-    required String panelId,
-    required String panelName,
+    @JsonKey(name: 'panel_id') required String panelId,
+    @JsonKey(name: 'panel_name') required String panelName,
     required DetectionType type,
     required double confidence,
-    required DateTime detectedAt,
-    String? imageUrl,
-    String? alertId,
+    @JsonKey(name: 'detected_at') required DateTime detectedAt,
+    @JsonKey(name: 'image_url') String? imageUrl,
+    @JsonKey(name: 'alert_id') String? alertId,
   }) = _Detection;
 
   factory Detection.fromJson(Map<String, dynamic> json) =>

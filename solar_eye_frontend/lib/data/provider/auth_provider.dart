@@ -15,10 +15,14 @@ FirebaseAuth firebaseAuth(FirebaseAuthRef ref) {
   return FirebaseAuth.instance;
 }
 
-// 2. Provider for GoogleSignIn instance
+// 2. Provider for GoogleSignIn instance (nullable for Web)
 @riverpod
-GoogleSignIn googleSignIn(GoogleSignInRef ref) {
+GoogleSignIn? googleSignIn(GoogleSignInRef ref) {
   debugPrint('🔐 [2] Creating GoogleSignIn provider');
+  if (kIsWeb) {
+    debugPrint('🌐 [2.1] Web detected, returning null for GoogleSignIn plugin');
+    return null;
+  }
   return GoogleSignIn();
 }
 
@@ -29,7 +33,8 @@ AuthRepository authRepository(AuthRepositoryRef ref) {
   final auth = ref.watch(firebaseAuthProvider);
   debugPrint('🔐 [3.1] Got FirebaseAuth');
   final google = ref.watch(googleSignInProvider);
-  debugPrint('🔐 [3.2] Got GoogleSignIn');
+  debugPrint(
+      '🔐 [3.2] Got GoogleSignIn (${google == null ? 'null' : 'active'})');
   final dio = ref.watch(apiClientProvider);
   debugPrint('🔐 [3.3] Got Dio client');
   final repo = AuthRepositoryImpl(auth, google, dio);

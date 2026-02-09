@@ -21,12 +21,17 @@ Detection _$DetectionFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$Detection {
   String get id => throw _privateConstructorUsedError;
+  @JsonKey(name: 'panel_id')
   String get panelId => throw _privateConstructorUsedError;
+  @JsonKey(name: 'panel_name')
   String get panelName => throw _privateConstructorUsedError;
   DetectionType get type => throw _privateConstructorUsedError;
   double get confidence => throw _privateConstructorUsedError;
+  @JsonKey(name: 'detected_at')
   DateTime get detectedAt => throw _privateConstructorUsedError;
+  @JsonKey(name: 'image_url')
   String? get imageUrl => throw _privateConstructorUsedError;
+  @JsonKey(name: 'alert_id')
   String? get alertId => throw _privateConstructorUsedError;
 
   /// Serializes this Detection to a JSON map.
@@ -46,13 +51,13 @@ abstract class $DetectionCopyWith<$Res> {
   @useResult
   $Res call(
       {String id,
-      String panelId,
-      String panelName,
+      @JsonKey(name: 'panel_id') String panelId,
+      @JsonKey(name: 'panel_name') String panelName,
       DetectionType type,
       double confidence,
-      DateTime detectedAt,
-      String? imageUrl,
-      String? alertId});
+      @JsonKey(name: 'detected_at') DateTime detectedAt,
+      @JsonKey(name: 'image_url') String? imageUrl,
+      @JsonKey(name: 'alert_id') String? alertId});
 }
 
 /// @nodoc
@@ -126,13 +131,13 @@ abstract class _$$DetectionImplCopyWith<$Res>
   @useResult
   $Res call(
       {String id,
-      String panelId,
-      String panelName,
+      @JsonKey(name: 'panel_id') String panelId,
+      @JsonKey(name: 'panel_name') String panelName,
       DetectionType type,
       double confidence,
-      DateTime detectedAt,
-      String? imageUrl,
-      String? alertId});
+      @JsonKey(name: 'detected_at') DateTime detectedAt,
+      @JsonKey(name: 'image_url') String? imageUrl,
+      @JsonKey(name: 'alert_id') String? alertId});
 }
 
 /// @nodoc
@@ -199,13 +204,13 @@ class __$$DetectionImplCopyWithImpl<$Res>
 class _$DetectionImpl implements _Detection {
   const _$DetectionImpl(
       {required this.id,
-      required this.panelId,
-      required this.panelName,
+      @JsonKey(name: 'panel_id') required this.panelId,
+      @JsonKey(name: 'panel_name') required this.panelName,
       required this.type,
       required this.confidence,
-      required this.detectedAt,
-      this.imageUrl,
-      this.alertId});
+      @JsonKey(name: 'detected_at') required this.detectedAt,
+      @JsonKey(name: 'image_url') this.imageUrl,
+      @JsonKey(name: 'alert_id') this.alertId});
 
   factory _$DetectionImpl.fromJson(Map<String, dynamic> json) =>
       _$$DetectionImplFromJson(json);
@@ -213,18 +218,23 @@ class _$DetectionImpl implements _Detection {
   @override
   final String id;
   @override
+  @JsonKey(name: 'panel_id')
   final String panelId;
   @override
+  @JsonKey(name: 'panel_name')
   final String panelName;
   @override
   final DetectionType type;
   @override
   final double confidence;
   @override
+  @JsonKey(name: 'detected_at')
   final DateTime detectedAt;
   @override
+  @JsonKey(name: 'image_url')
   final String? imageUrl;
   @override
+  @JsonKey(name: 'alert_id')
   final String? alertId;
 
   @override
@@ -275,13 +285,13 @@ class _$DetectionImpl implements _Detection {
 abstract class _Detection implements Detection {
   const factory _Detection(
       {required final String id,
-      required final String panelId,
-      required final String panelName,
+      @JsonKey(name: 'panel_id') required final String panelId,
+      @JsonKey(name: 'panel_name') required final String panelName,
       required final DetectionType type,
       required final double confidence,
-      required final DateTime detectedAt,
-      final String? imageUrl,
-      final String? alertId}) = _$DetectionImpl;
+      @JsonKey(name: 'detected_at') required final DateTime detectedAt,
+      @JsonKey(name: 'image_url') final String? imageUrl,
+      @JsonKey(name: 'alert_id') final String? alertId}) = _$DetectionImpl;
 
   factory _Detection.fromJson(Map<String, dynamic> json) =
       _$DetectionImpl.fromJson;
@@ -289,18 +299,23 @@ abstract class _Detection implements Detection {
   @override
   String get id;
   @override
+  @JsonKey(name: 'panel_id')
   String get panelId;
   @override
+  @JsonKey(name: 'panel_name')
   String get panelName;
   @override
   DetectionType get type;
   @override
   double get confidence;
   @override
+  @JsonKey(name: 'detected_at')
   DateTime get detectedAt;
   @override
+  @JsonKey(name: 'image_url')
   String? get imageUrl;
   @override
+  @JsonKey(name: 'alert_id')
   String? get alertId;
 
   /// Create a copy of Detection

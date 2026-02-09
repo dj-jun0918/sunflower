@@ -131,29 +131,37 @@ class _MainScreenState extends ConsumerState<MainScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(
-                index: 0,
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
-                label: '홈',
+              Expanded(
+                child: _buildNavItem(
+                  index: 0,
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
+                  label: '홈',
+                ),
               ),
-              _buildNavItem(
-                index: 1,
-                icon: Icons.camera_alt_outlined,
-                activeIcon: Icons.camera_alt_rounded,
-                label: '모니터링',
+              Expanded(
+                child: _buildNavItem(
+                  index: 1,
+                  icon: Icons.camera_alt_outlined,
+                  activeIcon: Icons.camera_alt_rounded,
+                  label: '모니터링',
+                ),
               ),
-              _buildNavItem(
-                index: 2,
-                icon: Icons.bar_chart_outlined,
-                activeIcon: Icons.bar_chart_rounded,
-                label: '리포트',
+              Expanded(
+                child: _buildNavItem(
+                  index: 2,
+                  icon: Icons.bar_chart_outlined,
+                  activeIcon: Icons.bar_chart_rounded,
+                  label: '리포트',
+                ),
               ),
-              _buildNavItem(
-                index: 3,
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings,
-                label: '설정',
+              Expanded(
+                child: _buildNavItem(
+                  index: 3,
+                  icon: Icons.settings_outlined,
+                  activeIcon: Icons.settings,
+                  label: '설정',
+                ),
               ),
             ],
           ),

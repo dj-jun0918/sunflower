@@ -15,11 +15,11 @@ class Panel with _$Panel {
     String? location,
     double? latitude,
     double? longitude,
-    String? rtspUrl,
+    @JsonKey(name: 'rtsp_url') String? rtspUrl,
     @Default(PanelStatus.normal) PanelStatus status,
-    DateTime? lastDetectionAt,
-    DateTime? createdAt,
-    DateTime? updatedAt,
+    @JsonKey(name: 'last_detection_at') DateTime? lastDetectionAt,
+    @JsonKey(name: 'created_at') DateTime? createdAt,
+    @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _Panel;
 
   factory Panel.fromJson(Map<String, dynamic> json) => _$PanelFromJson(json);
@@ -45,7 +45,7 @@ class PanelRequest with _$PanelRequest {
     required String location,
     required double latitude,
     required double longitude,
-    String? rtspUrl,
+    @JsonKey(name: 'rtsp_url') String? rtspUrl,
   }) = _PanelRequest;
 
   factory PanelRequest.fromJson(Map<String, dynamic> json) =>

@@ -1,3 +1,4 @@
+import 'package:solar_eye_frontend/domain/model/monitoring.dart';
 import 'package:solar_eye_frontend/domain/model/panel.dart';
 
 /// 패널 Repository 인터페이스
@@ -7,6 +8,9 @@ abstract class PanelRepository {
 
   /// 패널 상세 정보 가져오기
   Future<Panel> getPanel(String id);
+
+  /// 패널 이력 가져오기
+  Future<List<AnalysisSession>> getPanelHistory(String panelId);
 
   /// 패널 생성
   Future<Panel> createPanel(PanelRequest request);

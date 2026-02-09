@@ -206,6 +206,150 @@ class _PanelDetailProviderElement
   String get panelId => (origin as PanelDetailProvider).panelId;
 }
 
+String _$panelHistoryHash() => r'5c87e6c2e10c9d7ac1dd1c06ad08326b89ab8779';
+
+/// 패널 이력 Provider
+///
+/// Copied from [panelHistory].
+@ProviderFor(panelHistory)
+const panelHistoryProvider = PanelHistoryFamily();
+
+/// 패널 이력 Provider
+///
+/// Copied from [panelHistory].
+class PanelHistoryFamily extends Family<AsyncValue<List<AnalysisSession>>> {
+  /// 패널 이력 Provider
+  ///
+  /// Copied from [panelHistory].
+  const PanelHistoryFamily();
+
+  /// 패널 이력 Provider
+  ///
+  /// Copied from [panelHistory].
+  PanelHistoryProvider call(
+    String panelId,
+  ) {
+    return PanelHistoryProvider(
+      panelId,
+    );
+  }
+
+  @override
+  PanelHistoryProvider getProviderOverride(
+    covariant PanelHistoryProvider provider,
+  ) {
+    return call(
+      provider.panelId,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'panelHistoryProvider';
+}
+
+/// 패널 이력 Provider
+///
+/// Copied from [panelHistory].
+class PanelHistoryProvider
+    extends AutoDisposeFutureProvider<List<AnalysisSession>> {
+  /// 패널 이력 Provider
+  ///
+  /// Copied from [panelHistory].
+  PanelHistoryProvider(
+    String panelId,
+  ) : this._internal(
+          (ref) => panelHistory(
+            ref as PanelHistoryRef,
+            panelId,
+          ),
+          from: panelHistoryProvider,
+          name: r'panelHistoryProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$panelHistoryHash,
+          dependencies: PanelHistoryFamily._dependencies,
+          allTransitiveDependencies:
+              PanelHistoryFamily._allTransitiveDependencies,
+          panelId: panelId,
+        );
+
+  PanelHistoryProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.panelId,
+  }) : super.internal();
+
+  final String panelId;
+
+  @override
+  Override overrideWith(
+    FutureOr<List<AnalysisSession>> Function(PanelHistoryRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: PanelHistoryProvider._internal(
+        (ref) => create(ref as PanelHistoryRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        panelId: panelId,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<List<AnalysisSession>> createElement() {
+    return _PanelHistoryProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PanelHistoryProvider && other.panelId == panelId;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, panelId.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin PanelHistoryRef on AutoDisposeFutureProviderRef<List<AnalysisSession>> {
+  /// The parameter `panelId` of this provider.
+  String get panelId;
+}
+
+class _PanelHistoryProviderElement
+    extends AutoDisposeFutureProviderElement<List<AnalysisSession>>
+    with PanelHistoryRef {
+  _PanelHistoryProviderElement(super.provider);
+
+  @override
+  String get panelId => (origin as PanelHistoryProvider).panelId;
+}
+
 String _$panelActionsHash() => r'9ef18671caeed68013a1c40ccd6c03956e2f0340';
 
 /// 패널 삭제/수정/생성 Notifier

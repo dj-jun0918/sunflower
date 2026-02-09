@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:solar_eye_frontend/app/navigator_key.dart';
 
 class FCMService {
@@ -116,8 +117,7 @@ class FCMService {
 
       final idToken = await user.getIdToken();
       final dio = Dio(BaseOptions(
-        baseUrl:
-            'https://solar-eye-backend-gpu-709419717662.asia-southeast1.run.app',
+        baseUrl: dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000',
         headers: {'Authorization': 'Bearer $idToken'},
       ));
 
