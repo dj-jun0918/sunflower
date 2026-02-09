@@ -64,6 +64,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 0. Header Area with Greeting
+                _buildHeader(summary),
+                const SizedBox(height: 24),
+
                 // 1. Swipeable Section (Hero + Graph)
                 SizedBox(
                   height: 380, // Adjust height as needed
@@ -107,7 +111,61 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
   }
 
-  /// 2. Hero Section: 효율 게이지 및 현재 출력
+  /// 0. Dashboard Header with dynamic greeting
+  Widget _buildHeader(DashboardSummary summary) {
+    final now = DateTime.now();
+    final hour = now.hour;
+    String greeting;
+    if (hour < 12) {
+      greeting = '좋은 아침입니다! ☀️';
+    } else if (hour < 18) {
+      greeting = '알찬 오후 보내고 계신가요? 🌤️';
+    } else {
+      greeting = '오늘 하루도 수고 많으셨습니다. 🌙';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          greeting,
+          style: AppTypography.bodyL.copyWith(
+            color: AppColors.text2,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Text(
+              '나의 태양광 시설',
+              style: AppTypography.headlineM.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.text1,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.success.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
+              ),
+              child: Text(
+                '운영 중',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 1. Hero Section: 효율 게이지 및 현재 출력
   Widget _buildHeroSection(DashboardSummary summary) {
     final statusColor = summary.efficiencyRate >= 90
         ? AppColors.success
@@ -125,13 +183,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.white,
+            const Color(0xFFF8FAFC),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -140,16 +205,31 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Circular Gauge (Simulated with Stack)
+              // Circular Gauge
               Stack(
                 alignment: Alignment.center,
                 children: [
+                  Container(
+                    width: 130,
+                    height: 130,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: statusColor.withValues(alpha: 0.1),
+                          blurRadius: 20,
+                          spreadRadius: 5,
+                        ),
+                      ],
+                    ),
+                  ),
                   SizedBox(
                     width: 120,
                     height: 120,
                     child: CircularProgressIndicator(
                       value: summary.efficiencyRate / 100,
-                      strokeWidth: 12,
+                      strokeWidth: 10,
                       backgroundColor: const Color(0xFFEDF2F7),
                       valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                       strokeCap: StrokeCap.round,
@@ -161,28 +241,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       Text(
                         '${summary.efficiencyRate.toInt()}%',
                         style: AppTypography.headlineL.copyWith(
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w800,
                           color: AppColors.text1,
+                          letterSpacing: -1,
                         ),
                       ),
-                      Container(
-                        margin: const EdgeInsets.only(top: 4),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: statusColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          summary.efficiencyRate >= 90
-                              ? '정상'
-                              : summary.efficiencyRate >= 70
-                                  ? '주의'
-                                  : '위험',
-                          style: AppTypography.caption.copyWith(
-                            color: statusColor,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      Text(
+                        summary.efficiencyRate >= 90
+                            ? '최적'
+                            : summary.efficiencyRate >= 70
+                                ? '주의'
+                                : '위험',
+                        style: AppTypography.labelM.copyWith(
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -193,10 +265,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('⚡️ 현재 출력',
-                      style: AppTypography.labelL
-                          .copyWith(color: AppColors.text2)),
-                  const SizedBox(height: 4),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '⚡️ 현재 출력',
+                      style: AppTypography.labelM.copyWith(
+                        color: AppColors.text2,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Consumer(
                     builder: (context, ref, child) {
                       final realtimePowerAsync =
@@ -211,17 +295,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           Text(
                             power.toStringAsFixed(1),
                             style: AppTypography.display.copyWith(
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w900,
                               color: AppColors.text1,
-                              fontSize: 32,
+                              fontSize: 36,
+                              letterSpacing: -1,
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 6, left: 4),
+                            padding: const EdgeInsets.only(bottom: 8, left: 4),
                             child: Text(
                               'kW',
-                              style: AppTypography.titleM
-                                  .copyWith(color: AppColors.text2),
+                              style: AppTypography.titleM.copyWith(
+                                color: AppColors.text2,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -234,18 +321,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(height: 24),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F9FC),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFF1F5F9)),
             ),
-            child: Text(
-              statusText,
-              textAlign: TextAlign.center,
-              style: AppTypography.bodyM.copyWith(
-                color: AppColors.text2,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: statusColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    statusText,
+                    style: AppTypography.bodyM.copyWith(
+                      color: AppColors.text1,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -411,19 +507,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('📉 예상 손실액 (오늘)',
+                  Text('📉 예상 수익 (오늘)',
                       style: AppTypography.labelL
                           .copyWith(color: AppColors.text2)),
                   const SizedBox(height: 8),
                   Text(
-                    // Assuming todayRevenue logic needs to be inverted or calculated for loss in backend,
-                    // but here user requested visual change.
-                    // "Expected Loss" usually implies a negative impact.
-                    // For now, I'll simulate a value or use a placeholder if backend doesn't provide "loss".
-                    // The prompt says "- 1,500 원".
-                    '- ${currencyFormat.format(1500)} 원',
+                    '${currencyFormat.format(summary.todayRevenue)} 원',
                     style: AppTypography.headlineM.copyWith(
-                        fontWeight: FontWeight.bold, color: AppColors.text1),
+                        fontWeight: FontWeight.w800, color: AppColors.text1),
                   ),
                 ],
               ),
@@ -431,15 +522,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.danger.withOpacity(0.1),
+                  color: summary.yesterdayRevenueDiff >= 0
+                      ? AppColors.success.withValues(alpha: 0.1)
+                      : AppColors.danger.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '▼ 500원\nvs 어제',
+                  '${summary.yesterdayRevenueDiff >= 0 ? '▲' : '▼'}${currencyFormat.format(summary.yesterdayRevenueDiff.abs())}원\nvs 어제',
                   textAlign: TextAlign.right,
                   style: AppTypography.caption.copyWith(
-                    color: AppColors.danger,
-                    fontWeight: FontWeight.w600,
+                    color: summary.yesterdayRevenueDiff >= 0
+                        ? AppColors.success
+                        : AppColors.danger,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -456,58 +551,113 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('📈 발전 효율 추이',
-              style:
-                  AppTypography.titleM.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('📈 발전 효율 추이',
+                  style: AppTypography.titleM.copyWith(
+                      fontWeight: FontWeight.w800, color: AppColors.text1)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '최근 7일',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
           SizedBox(
-            height: 120,
+            height: 140,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: List.generate(7, (index) {
-                // Mockup Graph Data
+                // Mockup Graph Data responded to currentEfficiency
                 final isToday = index == 6;
-                final height = isToday
-                    ? (currentEfficiency / 100) * 100
-                    : (80 + index * 2) * 1.0;
-                final forecastHeight = height + 5;
+                final baseHeight = (85 + (index * 1.5));
+                final height = isToday ? currentEfficiency : baseHeight;
+                final forecastHeight =
+                    isToday ? currentEfficiency + 2 : baseHeight + 5;
 
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: Stack(
-                      alignment: Alignment.bottomCenter,
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        // Forecast (AI)
-                        Container(
-                          height: forecastHeight * 1.2, // Scaling
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE2E8F0),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        // Real
-                        Container(
-                          height: height * 1.2,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Color(0xFF4FD1C5), Color(0xFF319795)],
+                        Stack(
+                          alignment: Alignment.bottomCenter,
+                          children: [
+                            // Forecast (AI) - Thinner and lighter
+                            Container(
+                              width: 14,
+                              height: (forecastHeight / 100) * 120,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                             ),
-                            borderRadius: BorderRadius.circular(8),
+                            // Real - Primary color with gradient
+                            Container(
+                              width: 14,
+                              height: (height / 100) * 120,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: isToday
+                                      ? [
+                                          AppColors.primary,
+                                          AppColors.primaryDark
+                                        ]
+                                      : [
+                                          const Color(0xFF94A3B8),
+                                          const Color(0xFF64748B)
+                                        ],
+                                ),
+                                borderRadius: BorderRadius.circular(4),
+                                boxShadow: isToday
+                                    ? [
+                                        BoxShadow(
+                                          color: AppColors.primary
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 4),
+                                        )
+                                      ]
+                                    : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          isToday ? '오늘' : '${index + 1}일',
+                          style: AppTypography.caption.copyWith(
+                            color:
+                                isToday ? AppColors.primary : AppColors.text3,
+                            fontWeight:
+                                isToday ? FontWeight.bold : FontWeight.normal,
+                            fontSize: 10,
                           ),
                         ),
                       ],
@@ -517,33 +667,55 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               }),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildLegend(const Color(0xFFE2E8F0), 'AI 예측량'),
-              const SizedBox(width: 16),
-              _buildLegend(const Color(0xFF319795), '실제 발전량'),
+              _buildLegend(const Color(0xFFF1F5F9), 'AI 예측량'),
+              const SizedBox(width: 20),
+              _buildLegend(AppColors.primary, '실제 발전량'),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFFBEB), // Yellow-50
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFFFE58F)),
+              color: const Color(0xFFF0FDFA), // Teal-50
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFCCFBF1)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.lightbulb_outline,
-                    color: Color(0xFFD97706), size: 20),
-                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF99F6E4), // Teal-200
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.auto_awesome,
+                      color: Color(0xFF0D9488), size: 16),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    '패널 오염을 제거하면 효율이 5% 상승합니다.',
-                    style: AppTypography.caption
-                        .copyWith(color: const Color(0xFF92400E)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'AI 인사이트',
+                        style: AppTypography.labelM.copyWith(
+                          color: const Color(0xFF0F766E),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        currentEfficiency < 90
+                            ? '현재 패널 오염을 제거하면 효율이 약 5% 상승할 것으로 예측됩니다.'
+                            : '현재 매우 우수한 발전 효율을 유지하고 있습니다.',
+                        style: AppTypography.caption.copyWith(
+                            color: const Color(0xFF115E59), height: 1.3),
+                      ),
+                    ],
                   ),
                 ),
               ],

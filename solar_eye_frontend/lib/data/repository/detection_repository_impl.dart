@@ -9,10 +9,11 @@ class DetectionRepositoryImpl implements DetectionRepository {
 
   /// 백엔드 응답을 프론트엔드 모델에 맞게 변환
   Map<String, dynamic> _transformDetection(Map<String, dynamic> json) {
-    // defectType -> type 변환 (지원되지 않는 타입 매핑)
-    String rawType = (json['defectType'] ?? json['type'] ?? 'normal')
-        .toString()
-        .toLowerCase();
+    // defectType -> type 변환
+    String rawType =
+        (json['defect_type'] ?? json['defectType'] ?? json['type'] ?? 'normal')
+            .toString()
+            .toLowerCase();
     String mappedType;
     if (rawType == 'soiling' || rawType == 'dust' || rawType == 'dirty') {
       mappedType = 'soiling';
@@ -25,15 +26,22 @@ class DetectionRepositoryImpl implements DetectionRepository {
       mappedType = 'normal';
     }
 
+    // @JsonKey(name: 'panel_id') 등에 맞게 snake_case 키를 기본으로 세팅
     return {
-      'id': json['id'].toString(),
-      'panelId': json['panelId'].toString(),
-      'panelName': json['panelName'] ?? '패널 ${json['panelId']}',
+      'id': (json['id'] ?? '0').toString(),
+      'panel_id': (json['panel_id'] ?? json['panelId'] ?? '0').toString(),
+      'panel_name':
+          json['panel_name'] ?? json['panelName'] ?? '패널 ${json['panel_id']}',
       'type': mappedType,
-      'confidence': json['confidence'] ?? 0.0,
-      'detectedAt': json['detectedAt'],
-      'imageUrl': json['snapshotUrl'] ?? json['imageUrl'],
-      'alertId': json['alertId']?.toString(),
+      'confidence': (json['confidence'] ?? 0.0).toDouble(),
+      'detected_at': json['detected_at'] ??
+          json['detectedAt'] ??
+          DateTime.now().toIso8601String(),
+      'image_url': json['snapshot_url'] ??
+          json['snapshotUrl'] ??
+          json['imageUrl'] ??
+          json['image_url'],
+      'alert_id': (json['alert_id'] ?? json['alertId'])?.toString(),
     };
   }
 

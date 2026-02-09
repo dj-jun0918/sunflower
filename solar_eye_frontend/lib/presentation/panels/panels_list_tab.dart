@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_eye_frontend/core/theme/app_colors.dart';
 import 'package:solar_eye_frontend/core/theme/app_spacing.dart';
-import 'package:solar_eye_frontend/core/theme/app_typography.dart';
 import 'package:solar_eye_frontend/data/provider/panel_provider.dart';
 import 'package:solar_eye_frontend/domain/model/panel.dart';
 import 'package:solar_eye_frontend/presentation/panels/panel_detail_screen.dart';

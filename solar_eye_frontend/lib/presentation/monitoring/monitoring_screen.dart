@@ -69,6 +69,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         _normalCount = 0;
         _defectCount = 0;
         _soilingCount = 0;
+        _analysisResult = null; // 탭 전환 시에는 초기화
       });
     });
     _fetchPanels();
@@ -118,7 +119,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         _imageSize =
             Size(decodedImage.width.toDouble(), decodedImage.height.toDouble());
         _isLoading = true;
-        _analysisResult = null;
+        // _analysisResult = null; // 결과 상태 초기화 제거 (누적 위해)
         _errorMessage = null;
         _detections = [];
         _loadingMessage = '이미지 업로드 중...';
@@ -244,10 +245,10 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
 
     setState(() {
       _analysisResultMeta = data; // 메타데이터 저장
-      _totalPanels = total > 0 ? total : 0;
-      _normalCount = normals;
-      _defectCount = cracks;
-      _soilingCount = soilings;
+      _totalPanels += total > 0 ? total : 0;
+      _normalCount += normals;
+      _defectCount += cracks;
+      _soilingCount += soilings;
 
       _detections = dets.map((d) {
         final bbox = d['bbox']; // {'x':..., 'y':..., 'width':..., 'height':...}
@@ -264,12 +265,17 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         };
       }).toList();
 
+      // 누적된 결과 중 가장 심각한 상태를 유지
       if (_defectCount > 0) {
         _analysisResult = AnalysisStatus.repair;
       } else if (_soilingCount > 0) {
-        _analysisResult = AnalysisStatus.clean;
+        if (_analysisResult != AnalysisStatus.repair) {
+          _analysisResult = AnalysisStatus.clean;
+        }
       } else {
-        _analysisResult = AnalysisStatus.normal;
+        if (_analysisResult == null) {
+          _analysisResult = AnalysisStatus.normal;
+        }
       }
 
       _isLoading = false;
@@ -354,7 +360,14 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
               _selectedPanel = newValue;
               // Reset analysis when panel changes
               _selectedFile = null;
+              _imageSize = null;
               _analysisResult = null;
+              _detections = [];
+              _totalPanels = 0;
+              _normalCount = 0;
+              _defectCount = 0;
+              _soilingCount = 0;
+              _errorMessage = null;
             });
           },
           items: _panels.map<DropdownMenuItem<Panel>>((Panel value) {
