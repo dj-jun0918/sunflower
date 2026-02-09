@@ -106,6 +106,10 @@ class AnalysisService:
         # 3. 비동기/동기 분석 실행 (현재는 동기 실행)
         try:
             image_bytes = file_path.read_bytes()
+            # 이미지 디코딩 (스냅샷 크롭용)
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            cv2_image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
             analysis_result = await AnalysisService.analyze_image_bytes(
                 image_bytes, 
                 monitoring_type=monitoring_type
@@ -117,7 +121,7 @@ class AnalysisService:
                 snapshot_url = None
                 try:
                     snapshot_url = await AnalysisService._save_snapshot(
-                        image=image,
+                        image=cv2_image,
                         bbox=detection.bbox,
                         defect_type=detection.defect_type
                     )

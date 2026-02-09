@@ -42,125 +42,18 @@ class PanelsListTab extends ConsumerWidget {
     WidgetRef ref,
     List<Panel> panels,
   ) {
-    // 상태별로 그룹핑
-    final dangerPanels =
-        panels.where((p) => p.status == PanelStatus.danger).toList();
-    final warningPanels =
-        panels.where((p) => p.status == PanelStatus.warning).toList();
-    final normalPanels =
-        panels.where((p) => p.status == PanelStatus.normal).toList();
-    final inactivePanels =
-        panels.where((p) => p.status == PanelStatus.inactive).toList();
-
     return RefreshIndicator(
       onRefresh: () async {
         ref.invalidate(panelListProvider);
       },
-      child: ListView(
+      child: ListView.builder(
         padding: const EdgeInsets.all(AppSpacing.screenPaddingH),
-        children: [
-          // 상태 요약
-          _buildStatusSummary(panels),
-          const SizedBox(height: AppSpacing.space5),
-
-          // 위험 패널
-          if (dangerPanels.isNotEmpty) ...[
-            _buildSectionHeader('위험 상태', dangerPanels.length, AppColors.danger),
-            const SizedBox(height: AppSpacing.space2),
-            ...dangerPanels.map((panel) => _buildPanelItem(context, panel)),
-            const SizedBox(height: AppSpacing.space4),
-          ],
-
-          // 주의 패널
-          if (warningPanels.isNotEmpty) ...[
-            _buildSectionHeader(
-                '주의 필요', warningPanels.length, AppColors.warning),
-            const SizedBox(height: AppSpacing.space2),
-            ...warningPanels.map((panel) => _buildPanelItem(context, panel)),
-            const SizedBox(height: AppSpacing.space4),
-          ],
-
-          // 정상 패널
-          if (normalPanels.isNotEmpty) ...[
-            _buildSectionHeader(
-                '정상 운영', normalPanels.length, AppColors.success),
-            const SizedBox(height: AppSpacing.space2),
-            ...normalPanels.map((panel) => _buildPanelItem(context, panel)),
-          ],
-
-          // 비활성 패널
-          if (inactivePanels.isNotEmpty) ...[
-            _buildSectionHeader('비활성', inactivePanels.length, AppColors.text3),
-            const SizedBox(height: AppSpacing.space2),
-            ...inactivePanels.map((panel) => _buildPanelItem(context, panel)),
-          ],
-
-          const SizedBox(height: 80), // FAB 공간
-        ],
+        itemCount: panels.length,
+        itemBuilder: (context, index) {
+          final panel = panels[index];
+          return _buildPanelItem(context, panel);
+        },
       ),
-    );
-  }
-
-  Widget _buildStatusSummary(List<Panel> panels) {
-    final normal = panels.where((p) => p.status == PanelStatus.normal).length;
-    final warning = panels.where((p) => p.status == PanelStatus.warning).length;
-    final danger = panels.where((p) => p.status == PanelStatus.danger).length;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.space4),
-      decoration: BoxDecoration(
-        color: AppColors.card,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _StatusItem(
-              label: '전체', count: panels.length, color: AppColors.primary),
-          _StatusItem(label: '정상', count: normal, color: AppColors.success),
-          _StatusItem(label: '주의', count: warning, color: AppColors.warning),
-          _StatusItem(label: '위험', count: danger, color: AppColors.danger),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title, int count, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.space2),
-        Text(
-          title,
-          style: AppTypography.titleM.copyWith(
-            color: AppColors.text1,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.space2),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(AppSpacing.radiusFull),
-          ),
-          child: Text(
-            count.toString(),
-            style: AppTypography.labelM.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -170,7 +63,8 @@ class PanelsListTab extends ConsumerWidget {
       child: PanelCard(
         name: panel.name,
         location: panel.location ?? '위치 정보 없음',
-        status: _convertStatus(panel.status),
+        // 상태 색상 및 배지 제거를 위해 normal로 고정 (또는 PanelCard 내부 수정 필요할 수 있음)
+        status: StatusType.normal,
         lastDetection: panel.lastDetectionAt != null
             ? _formatTime(panel.lastDetectionAt!)
             : null,
@@ -197,19 +91,6 @@ class PanelsListTab extends ConsumerWidget {
     );
   }
 
-  StatusType _convertStatus(PanelStatus status) {
-    switch (status) {
-      case PanelStatus.normal:
-        return StatusType.normal;
-      case PanelStatus.warning:
-        return StatusType.warning;
-      case PanelStatus.danger:
-        return StatusType.danger;
-      case PanelStatus.inactive:
-        return StatusType.normal; // UI상 비활성은 보통 스타일로 처리
-    }
-  }
-
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
@@ -229,39 +110,6 @@ class PanelsListTab extends ConsumerWidget {
       MaterialPageRoute(
         builder: (_) => PanelDetailScreen(panelId: panel.id),
       ),
-    );
-  }
-}
-
-class _StatusItem extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-
-  const _StatusItem({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          count.toString(),
-          style: AppTypography.headlineM.copyWith(
-            color: color,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        Text(
-          label,
-          style: AppTypography.caption.copyWith(
-            color: AppColors.text2,
-          ),
-        ),
-      ],
     );
   }
 }
