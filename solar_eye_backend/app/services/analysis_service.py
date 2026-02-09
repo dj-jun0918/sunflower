@@ -23,7 +23,8 @@ from sqlalchemy.orm import selectinload
 from app.ai import get_pipeline, PanelAnalysisResult
 from app.models.analysis import AnalysisSession, AnalysisStatus, MonitoringType
 from app.models.detection import Detection, DefectType, DefectSubtype
-from app.models.panel import Panel
+from app.models.panel import Panel, PanelStatus
+from app.models.user import User
 from app.schemas.analysis import AnalysisResultSchema, PanelDetectionSchema, BoundingBoxSchema
 from app.schemas.monitoring import AnalysisSessionResponse, AnalysisResultResponse, AnalysisHistoryResponse
 from app.schemas.detection import DetectionResponse
@@ -38,22 +39,42 @@ class AnalysisService:
     @staticmethod
     async def process_analysis(
         db: AsyncSession,
+        user: User,
         facility_id: int,
         image_file: UploadFile,
         monitoring_type: str
     ) -> AnalysisSessionResponse:
         """
         이미지 업로드 및 분석 요청 처리
-        
-        Args:
-            db: DB 세션
-            facility_id: 시설(패널) ID
-            image_file: 업로드된 이미지 파일
-            monitoring_type: 모니터링 유형 (cctv/drone)
-            
-        Returns:
-            AnalysisSessionResponse
         """
+        # 패널 검증 및 자동 생성 로직
+        # facility_id가 1이거나 사용자의 소유가 아닌 경우 사용자의 첫 번째 패널을 찾거나 생성함
+        stmt = select(Panel).where(Panel.id == facility_id, Panel.user_id == user.id)
+        res = await db.execute(stmt)
+        panel = res.scalar_one_or_none()
+
+        if not panel:
+            # 사용자의 패널이 하나라도 있는지 확인
+            stmt = select(Panel).where(Panel.user_id == user.id).limit(1)
+            res = await db.execute(stmt)
+            panel = res.scalar_one_or_none()
+
+            if not panel:
+                # 패널이 없으면 자동 생성
+                logger.info(f"사용자 {user.id}: 패널 부재로 자동 생성 시작")
+                panel = Panel(
+                    user_id=user.id,
+                    name="나의 첫 번째 태양광 시설",
+                    location="위치 정보 없음 (자동 생성)",
+                    status="active"
+                )
+                db.add(panel)
+                await db.commit()
+                await db.refresh(panel)
+            
+            facility_id = panel.id
+            logger.info(f"사용자 {user.id}: 분석 데이터를 패널 {facility_id}에 할당함")
+
         # 1. 이미지 저장
         upload_dir = Path("static/uploads") / datetime.now().strftime("%Y/%m")
         upload_dir.mkdir(parents=True, exist_ok=True)
@@ -118,6 +139,13 @@ class AnalysisService:
                     mask=detection.mask
                 )
                 db.add(db_detection)
+            
+            # 5. 패널 상태 동기화
+            # 현재 분석 세션의 탐지 결과들을 바탕으로 패널 상태 업데이트
+            stmt = select(Detection).where(Detection.analysis_session_id == session.id)
+            res = await db.execute(stmt)
+            session_detections = res.scalars().all()
+            await AnalysisService._update_panel_status(db, facility_id, session_detections)
             
             session.status = AnalysisStatus.COMPLETED
             await db.commit()
@@ -429,6 +457,10 @@ class AnalysisService:
             db.add(db_detection)
             await db.flush()
             saved_ids.append(db_detection.id)
+            added_detections.append(db_detection)
+        
+        # 패널 상태 동기화
+        await AnalysisService._update_panel_status(db, panel_id, added_detections)
         
         await db.commit()
         
@@ -482,3 +514,37 @@ class AnalysisService:
         except Exception as e:
             logger.error(f"Error saving snapshot: {e}")
             return None
+
+    @staticmethod
+    async def _update_panel_status(
+        db: AsyncSession,
+        panel_id: int,
+        detections: List[Detection]
+    ) -> None:
+        """
+        탐지 결과를 바탕으로 패널의 상태를 업데이트합니다.
+        """
+        if not detections:
+            # 탐지 결과가 없으면 정상으로 간주할 수도 있으나, 
+            # 여기서는 명시적으로 탐지된 경우만 처리
+            return
+
+        # 심각도 순위: defect(error) > soiling(maintenance) > normal(active)
+        new_status = PanelStatus.ACTIVE.value
+        
+        has_defect = any(d.defect_type == DefectType.DEFECT for d in detections)
+        has_soiling = any(d.defect_type == DefectType.SOILING for d in detections)
+        
+        if has_defect:
+            new_status = PanelStatus.ERROR.value
+        elif has_soiling:
+            new_status = PanelStatus.MAINTENANCE.value
+            
+        stmt = select(Panel).where(Panel.id == panel_id)
+        res = await db.execute(stmt)
+        panel = res.scalar_one_or_none()
+        
+        if panel and panel.status != new_status:
+            logger.info(f"패널 {panel_id} 상태 동기화: {panel.status} -> {new_status}")
+            panel.status = new_status
+            await db.flush()

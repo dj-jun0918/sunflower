@@ -4,7 +4,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_db, get_current_user
+from app.models.user import User
 from app.services.analysis_service import AnalysisService
 from app.schemas.monitoring import AnalysisSessionResponse, AnalysisResultResponse, AnalysisHistoryResponse
 
@@ -18,7 +19,8 @@ router = APIRouter()
 async def analyze_cctv_image(
     facility_id: int,
     image: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     CCTV 이미지 분석 요청
@@ -26,6 +28,7 @@ async def analyze_cctv_image(
     try:
         session = await AnalysisService.process_analysis(
             db=db,
+            user=current_user,
             facility_id=facility_id,
             image_file=image,
             monitoring_type="cctv"
@@ -45,7 +48,8 @@ async def analyze_cctv_image(
 async def analyze_drone_image(
     facility_id: int,
     image: UploadFile = File(...),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     """
     드론 이미지 분석 요청
@@ -53,6 +57,7 @@ async def analyze_drone_image(
     try:
         session = await AnalysisService.process_analysis(
             db=db,
+            user=current_user,
             facility_id=facility_id,
             image_file=image,
             monitoring_type="drone"

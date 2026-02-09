@@ -127,6 +127,13 @@ def create_application() -> FastAPI:
     # 에러 핸들러 등록
     register_exception_handlers(app)
 
+    # 정적 파일 서빙 설정
+    from fastapi.staticfiles import StaticFiles
+    import os
+    if not os.path.exists("static"):
+        os.makedirs("static")
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
     # =========================================================================
     # API 라우터 등록
     # =========================================================================

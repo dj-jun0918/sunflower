@@ -36,27 +36,30 @@ async def seed_data():
     async with AsyncSessionLocal() as db:
         print("🌱 Seeding data for 'Chuncheon No. 1 Power Plant' (100kW)...")
 
-        # 1. Create or Get User
-        result = await db.execute(select(User).where(User.email == "admin@solareye.com"))
+        # 1. Create or Get User (Target User from the logs)
+        TARGET_EMAIL = "edu_164@iceu.kr"
+        TARGET_UID = "4xzw99BVSiZPBhubzaGt8w6oOwC2" # From the user's JWT log
+
+        result = await db.execute(select(User).where(User.email == TARGET_EMAIL))
         user = result.scalar_one_or_none()
         
         if not user:
-            print("Creating admin user...")
+            print(f"Creating user {TARGET_EMAIL}...")
             user = User(
-                email="admin@solareye.com",
-                firebase_uid="iSdXTIOG9EP4RzUmf0dqXPxePZI3", 
-                display_name="관리자",
+                email=TARGET_EMAIL,
+                firebase_uid=TARGET_UID, 
+                display_name="테스트 사용자",
                 is_active=True,
-                provider="email",
+                provider="google",
             )
             db.add(user)
             await db.commit()
             await db.refresh(user)
         else:
-            print(f"User found: {user.email}")
+            print(f"User found: {user.email} (ID: {user.id})")
             # Ensure user has name
             if not user.display_name:
-                user.display_name = "관리자"
+                user.display_name = "테스트 사용자"
                 db.add(user)
                 await db.commit()
 

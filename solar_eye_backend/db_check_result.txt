@@ -1,0 +1,6 @@
+🧐 Checking DB for edu_164@iceu.kr...
+User found: ID=3, Email=edu_164@iceu.kr
+Total Panels for User: 1
+ - Panel ID=9, Name=나의 첫 번째 태양광 시설
+Recent Analysis Sessions (Global): 0
+Analysis Sessions for Panel ID 1: 0
