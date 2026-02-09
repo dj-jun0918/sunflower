@@ -119,9 +119,46 @@ class AnalysisService:
                     detected_at=datetime.utcnow(),
                 )
                 db.add(db_detection)
+                await db.flush()  # ID 생성을 위해 flush
+                saved_ids.append(db_detection.id)
                 
             session.status = AnalysisStatus.COMPLETED
             await db.commit()
+            
+            # 5. FCM 알림 전송 (결함 또는 오염이 감지된 경우)
+            if analysis_result.defect_count > 0 or analysis_result.soiling_count > 0:
+                try:
+                    # 패널 정보 조회
+                    panel_stmt = select(Panel).where(Panel.id == facility_id)
+                    panel_result = await db.execute(panel_stmt)
+                    panel = panel_result.scalar_one_or_none()
+                    
+                    if panel and panel.user_id and saved_ids:
+                        alert_service = AlertService(db)
+                        
+                        # 결함/오염이 있는 첫 번째 탐지 결과로 알림 생성
+                        for detection_id in saved_ids:
+                            detection_stmt = select(Detection).where(Detection.id == detection_id)
+                            detection_result = await db.execute(detection_stmt)
+                            detection = detection_result.scalar_one_or_none()
+                            
+                            if detection and detection.defect_type in ['defect', 'soiling']:
+                                from app.models.user import User
+                                user_stmt = select(User).where(User.id == panel.user_id)
+                                user_result = await db.execute(user_stmt)
+                                user = user_result.scalar_one_or_none()
+                                
+                                if user:
+                                    await alert_service.create_alert_from_detection(
+                                        detection=detection,
+                                        user=user,
+                                        panel=panel
+                                    )
+                                    logger.info(f"FCM 알림 전송 완료: 패널 {facility_id}, 탐지 {detection_id}")
+                                break  # 첫 번째 결함/오염만 알림
+                        
+                except Exception as e:
+                    logger.error(f"FCM 알림 전송 중 오류: {e}", exc_info=True)
             
         except Exception as e:
             logger.error(f"분석 상세 처리 중 오류 (세션 ID: {session.id}): {e}")
