@@ -105,6 +105,7 @@ app/ai/models/*.keras
 app/ai/models/best_solar_model.keras
 app/ai/models/yolo26m40000_weights_best.pt
 app/ai/models/final_weighted_model/
+app/ai/models/final_weighted_model.zip
 *.keras
 *.onnx
 
