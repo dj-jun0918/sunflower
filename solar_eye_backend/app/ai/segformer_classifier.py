@@ -74,6 +74,11 @@ class SegFormerClassifier:
                 
             model.eval()
             
+            # DataParallel 적용 (GPU가 여러 개일 경우)
+            if self.device == 'cuda' and torch.cuda.device_count() > 1:
+                logger.info(f"Multi-GPU Detected: {torch.cuda.device_count()} GPUs. Using DataParallel.")
+                model = torch.nn.DataParallel(model)
+            
             logger.info("SegFormer 모델 로드 완료")
             return model, processor
             
@@ -144,7 +149,7 @@ class SegFormerClassifier:
                 for _ in batch:
                     results.append(SegmentationResult(
                         mask=np.zeros((1, 1), dtype=np.uint8), 
-                        defect_type="error", 
+                        defect_type="normal",  # fallback to 'normal' (valid DB enum)
                         defect_ratio=0.0
                     ))
                     

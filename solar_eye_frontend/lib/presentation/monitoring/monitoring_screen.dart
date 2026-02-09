@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert'; // For jsonDecode
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:solar_eye_frontend/core/theme/app_colors.dart';
@@ -558,7 +559,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
   }
 
   Widget _buildCCTVResultLayout() {
-    final baseUrl = 'https://solar-eye-backend-709419717662.asia-southeast1.run.app';
+    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://34.22.105.23:8080';
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
