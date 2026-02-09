@@ -70,7 +70,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 // 1. Swipeable Section (Hero + Graph)
                 SizedBox(
-                  height: 450, // Increased height for integrated metrics
+                  height: 390, // Adjusted to prevent overflow
                   child: PageView(
                     controller: _pageController,
                     onPageChanged: (index) {
@@ -210,8 +210,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 130,
-                    height: 130,
+                    width: 110,
+                    height: 110,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white,
@@ -225,11 +225,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ),
                   ),
                   SizedBox(
-                    width: 120,
-                    height: 120,
+                    width: 100,
+                    height: 100,
                     child: CircularProgressIndicator(
                       value: summary.efficiencyRate / 100,
-                      strokeWidth: 10,
+                      strokeWidth: 8,
                       backgroundColor: const Color(0xFFEDF2F7),
                       valueColor: AlwaysStoppedAnimation<Color>(statusColor),
                       strokeCap: StrokeCap.round,
@@ -240,10 +240,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       Text(
                         '${summary.efficiencyRate.toInt()}%',
-                        style: AppTypography.headlineL.copyWith(
+                        style: AppTypography.headlineM.copyWith(
                           fontWeight: FontWeight.w800,
                           color: AppColors.text1,
-                          letterSpacing: -1,
                         ),
                       ),
                       Text(
@@ -261,7 +260,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
                 ],
               ),
-              const SizedBox(width: 32),
+              const SizedBox(width: 24),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -298,7 +297,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             style: AppTypography.display.copyWith(
                               fontWeight: FontWeight.w900,
                               color: AppColors.text1,
-                              fontSize: 32,
+                              fontSize: 28,
                               letterSpacing: -1,
                             ),
                           ),
@@ -316,7 +315,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   // 예상 수익 지표 (통합)
                   Container(
                     padding:
@@ -339,10 +338,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     children: [
                       Text(
                         NumberFormat('#,###').format(summary.todayRevenue),
-                        style: AppTypography.headlineL.copyWith(
+                        style: AppTypography.titleL.copyWith(
                           fontWeight: FontWeight.w800,
                           color: AppColors.text1,
-                          fontSize: 24,
                         ),
                       ),
                       Padding(
@@ -361,10 +359,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
