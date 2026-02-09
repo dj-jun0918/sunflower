@@ -144,7 +144,7 @@ class SegFormerClassifier:
                 for _ in batch:
                     results.append(SegmentationResult(
                         mask=np.zeros((1, 1), dtype=np.uint8), 
-                        defect_type="error", 
+                        defect_type="normal",  # fallback to valid DB enum 
                         defect_ratio=0.0
                     ))
                     

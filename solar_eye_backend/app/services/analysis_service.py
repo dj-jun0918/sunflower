@@ -350,6 +350,149 @@ class AnalysisService:
             raise
 
     @staticmethod
+    async def analyze_cctv_with_images(
+        image_bytes: bytes,
+        session_id: uuid.UUID
+    ) -> tuple[AnalysisResultSchema, dict]:
+        """
+        CCTV 이미지 분석 및 결과 이미지 저장 (ESRGAN + SegFormer)
+        
+        Returns:
+            (AnalysisResultSchema, extra_images_dict)
+        """
+        try:
+            # 기본 분석 수행
+            pipeline = get_pipeline()
+            
+            # 이미지 디코딩
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            
+            if image is None:
+                raise ValueError("이미지 디코딩 실패")
+            
+            logger.info("CCTV AI 분석 시작 (ESRGAN + SegFormer 이미지 저장 포함)")
+            
+            # 결과 저장 디렉토리 생성
+            result_dir = Path("static/results") / str(session_id)
+            result_dir.mkdir(parents=True, exist_ok=True)
+            
+            # YOLO Detection
+            detections = pipeline.cctv_detector.detect(image)
+            logger.info(f"CCTV Detection: {len(detections)} panels")
+            
+            if not detections:
+                # 빈 결과 반환
+                return AnalysisResultSchema(
+                    total_panels=0,
+                    normal_count=0,
+                    defect_count=0,
+                    soiling_count=0,
+                    detections=[],
+                ), {}
+            
+            # Crop & Enhancement
+            crops = []
+            enhanced_crops = []
+            valid_indices = []
+            
+            for i, detection in enumerate(detections):
+                cropped = pipeline._crop_panel(image, detection.bbox)
+                if cropped.shape[0] >= 10 and cropped.shape[1] >= 10:
+                    crops.append(cropped)
+                    
+                    # Real-ESRGAN Enhancement
+                    try:
+                        enhanced = pipeline.enhancer.enhance(cropped)
+                        enhanced_crops.append(enhanced)
+                        
+                        # Enhanced 이미지 저장 (각 패널별로)
+                        enhanced_path = result_dir / f"enhanced_{i}.jpg"
+                        cv2.imwrite(str(enhanced_path), enhanced)
+                    except Exception as e:
+                        logger.error(f"Enhancement failed for panel {i}: {e}")
+                        enhanced_crops.append(cropped)
+                        # 실패 시에도 원본 저장
+                        enhanced_path = result_dir / f"enhanced_{i}.jpg"
+                        cv2.imwrite(str(enhanced_path), cropped)
+                    
+                    valid_indices.append(i)
+            
+            if not enhanced_crops:
+                return AnalysisResultSchema(
+                    total_panels=0,
+                    normal_count=0,
+                    defect_count=0,
+                    soiling_count=0,
+                    detections=[],
+                ), {}
+            
+            # SegFormer Classification
+            # L4 GPU 2장: 배치 사이즈 8로 동시 처리
+            MAX_BATCH_SIZE = 8 
+            seg_results = pipeline.seg_classifier.predict_batch(enhanced_crops, batch_size=MAX_BATCH_SIZE)
+            
+            # 각 패널별로 마스크 컬러 이미지 생성 및 저장
+            for idx, seg_result in enumerate(seg_results):
+                if seg_result.mask is not None:
+                    mask = seg_result.mask
+                    # 마스크를 컬러 이미지로 변환 (0=초록, 1=노랑, 2=빨강)
+                    color_mask = np.zeros((*mask.shape, 3), dtype=np.uint8)
+                    color_mask[mask == 0] = [0, 255, 0]  # Normal - Green
+                    color_mask[mask == 1] = [0, 255, 255]  # Soiling - Yellow
+                    color_mask[mask == 2] = [0, 0, 255]  # Crack - Red
+                    
+                    mask_path = result_dir / f"mask_{idx}.jpg"
+                    cv2.imwrite(str(mask_path), color_mask)
+            
+            # 결과 집계
+            results = []
+            normal_count = 0
+            defect_count = 0
+            soiling_count = 0
+            
+            for i, seg_result in enumerate(seg_results):
+                original_idx = valid_indices[i]
+                detection = detections[original_idx]
+                
+                defect_subtype = None
+                if seg_result.defect_type == "defect":
+                    defect_subtype = "crack"
+                    defect_count += 1
+                elif seg_result.defect_type == "soiling":
+                    defect_subtype = "dust"
+                    soiling_count += 1
+                else:
+                    normal_count += 1
+                
+                results.append(PanelDetectionSchema(
+                    bbox=BoundingBoxSchema(
+                        x=detection.bbox.x,
+                        y=detection.bbox.y,
+                        width=detection.bbox.width,
+                        height=detection.bbox.height,
+                    ),
+                    panel_confidence=detection.confidence,
+                    defect_type=seg_result.defect_type,
+                    defect_subtype=defect_subtype,
+                    class_confidence=seg_result.defect_ratio,
+                    raw_class_name=seg_result.defect_type,
+                    mask=None  # 마스크는 이미지로 저장했으므로 JSON은 생략
+                ))
+            
+            return AnalysisResultSchema(
+                total_panels=len(results),
+                normal_count=normal_count,
+                defect_count=defect_count,
+                soiling_count=soiling_count,
+                detections=results,
+            ), {}
+            
+        except Exception as e:
+            logger.error(f"CCTV 이미지 분석 중 오류: {e}", exc_info=True)
+            raise
+
+    @staticmethod
     async def analyze_panel_snapshot(
         db: AsyncSession,
         panel_id: int,
