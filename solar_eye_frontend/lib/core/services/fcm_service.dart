@@ -19,16 +19,27 @@ class FCMService {
 
   /// Initialize FCM Service
   Future<void> initialize() async {
+    if (kIsWeb) {
+      debugPrint('🌐 FCM is disabled on Web platform');
+      return;
+    }
     // 1. Request Permission
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
-      alert: true,
-      announcement: false,
-      badge: true,
-      carPlay: false,
-      criticalAlert: false,
-      provisional: false,
-      sound: true,
-    );
+    // On Web, requestPermission is supported but often requires careful handling
+    NotificationSettings settings;
+    try {
+      settings = await _firebaseMessaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+    } catch (e) {
+      debugPrint('❌ FCM requestPermission error: $e');
+      return;
+    }
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
       debugPrint('User granted permission');
@@ -42,13 +53,17 @@ class FCMService {
 
     // 2. Get FCM Token
     try {
-      String? token = await _firebaseMessaging.getToken();
+      // For Web, VAPID key is often required
+      String? vapidKey =
+          kIsWeb ? dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] : null;
+      String? token = await _firebaseMessaging.getToken(vapidKey: vapidKey);
       debugPrint("FCM Token: $token");
       if (token != null) {
         await _registerToken(token);
       }
     } catch (e) {
-      debugPrint("Failed to get FCM token: $e");
+      debugPrint("❌ Failed to get FCM token: $e");
+      // Don't crash the app if FCM fails
     }
 
     // 3. Listen to Token Refresh

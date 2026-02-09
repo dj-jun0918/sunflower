@@ -9,7 +9,7 @@ part 'api_client.g.dart';
 @riverpod
 Dio apiClient(ApiClientRef ref) {
   // .env에서 URL을 가져오거나, 없으면 로컬 백엔드 URL 사용
-  String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:8000';
+  String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://34.64.165.37:8000';
 
   debugPrint('🔌 Connecting to API: $baseUrl');
 

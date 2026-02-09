@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -26,7 +27,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   debugPrint(
-      '🚀 VERSION CHECK: BUILD 2026-02-06-V1 (NavigatorKey Removed, Fonts Disabled)');
+      '🚀 VERSION CHECK: BUILD 2026-02-10-V1 (NavigatorKey Removed, Fonts Disabled)');
 
   // Set up error handling to capture actual error messages
   FlutterError.onError = (FlutterErrorDetails details) {
@@ -41,16 +42,24 @@ Future<void> main() async {
   // Initialize Kakao SDK - Temporarily disabled for testing
   // KakaoSdk.init(nativeAppKey: dotenv.env['KAKAO_NATIVE_APP_KEY']);
 
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    // Initialize Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  // Set up background message handler
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // Set up background message handler (Skip on Web)
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler);
+    }
 
-  // Initialize FCM Service
-  await FCMService().initialize();
+    // Initialize FCM Service
+    await FCMService().initialize();
+  } catch (e, stack) {
+    debugPrint('❌ Initialization Error: $e');
+    debugPrint('❌ Stack: $stack');
+  }
 
   // Wrap the entire app in a ProviderScope for Riverpod state management
   runApp(const ProviderScope(child: MyApp()));

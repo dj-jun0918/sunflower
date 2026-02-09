@@ -227,21 +227,33 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
     // Direct access to detections from response
     List<dynamic> dets = data['detections'] ?? [];
 
-    int total = dets.length;
-    // defects variable removed (unused)
-    // Assuming backend returns defect_type
+    // Debug: Print what we received
+    debugPrint('🔍 [Analysis] Received ${dets.length} detections');
+    for (var d in dets) {
+      debugPrint(
+          '  → defectType: ${d['defectType'] ?? d['defect_type']}, confidence: ${d['confidence']}');
+    }
 
-    // Logic update: In our mocked services (previous session), defect_type might be "crack", "soiling".
-    // Let's refine based on DetectionResponse schema which I'm checking next, but for now assuming 'defect_type' field.
-    int soilings = dets
-        .where((d) => (d['defectType'] ?? d['defect_type']) == 'soiling')
-        .length;
-    int cracks = dets
-        .where((d) =>
-            (d['defectType'] ?? d['defect_type']) == 'crack' ||
-            (d['defectType'] ?? d['defect_type']) == 'defect')
-        .length;
-    int normals = total - cracks - soilings; // or check explicitly
+    int total = dets.length;
+
+    // Updated logic: Backend returns 'defect', 'soiling', 'normal' (lowercase)
+    // Also handle 'Crack', 'Soiling', 'Normal' (uppercase from KerasClassifier)
+    int soilings = dets.where((d) {
+      final type =
+          (d['defectType'] ?? d['defect_type'] ?? '').toString().toLowerCase();
+      return type == 'soiling';
+    }).length;
+
+    int cracks = dets.where((d) {
+      final type =
+          (d['defectType'] ?? d['defect_type'] ?? '').toString().toLowerCase();
+      return type == 'crack' || type == 'defect';
+    }).length;
+
+    int normals = total - cracks - soilings;
+
+    debugPrint(
+        '📊 [Analysis] Summary: Total=$total, Normal=$normals, Defect=$cracks, Soiling=$soilings');
 
     setState(() {
       _analysisResultMeta = data; // 메타데이터 저장

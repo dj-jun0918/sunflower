@@ -16,22 +16,34 @@ class AlertsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final alertsAsync = ref.watch(alertListProvider);
 
-    return alertsAsync.when(
-      loading: () => const LoadingIndicator(message: '알림 로딩 중...'),
-      error: (error, stack) => EmptyState(
-        icon: Icons.error_outline,
-        title: '오류가 발생했습니다',
-        description: error.toString(),
-        actionLabel: '다시 시도',
-        onAction: () => ref.read(alertListProvider.notifier).refresh(),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('알림'),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
-      data: (response) => response.alerts.isEmpty
-          ? const EmptyState(
-              icon: Icons.notifications_off_outlined,
-              title: '알림이 없습니다',
-              description: '새로운 알림이 오면 여기에 표시됩니다',
-            )
-          : _buildAlertsList(context, ref, response),
+      body: alertsAsync.when(
+        loading: () => const LoadingIndicator(message: '알림 로딩 중...'),
+        error: (error, stack) => EmptyState(
+          icon: Icons.error_outline,
+          title: '오류가 발생했습니다',
+          description: error.toString(),
+          actionLabel: '다시 시도',
+          onAction: () => ref.read(alertListProvider.notifier).refresh(),
+        ),
+        data: (response) => response.alerts.isEmpty
+            ? const EmptyState(
+                icon: Icons.notifications_off_outlined,
+                title: '알림이 없습니다',
+                description: '새로운 알림이 오면 여기에 표시됩니다',
+              )
+            : _buildAlertsList(context, ref, response),
+      ),
     );
   }
 
