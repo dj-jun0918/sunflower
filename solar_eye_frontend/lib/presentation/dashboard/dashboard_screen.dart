@@ -70,7 +70,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 // 1. Swipeable Section (Hero + Graph)
                 SizedBox(
-                  height: 380, // Adjust height as needed
+                  height: 450, // Increased height for integrated metrics
                   child: PageView(
                     controller: _pageController,
                     onPageChanged: (index) {
@@ -265,6 +265,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 현재 출력 지표
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -280,7 +281,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Consumer(
                     builder: (context, ref, child) {
                       final realtimePowerAsync =
@@ -297,12 +298,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             style: AppTypography.display.copyWith(
                               fontWeight: FontWeight.w900,
                               color: AppColors.text1,
-                              fontSize: 36,
+                              fontSize: 32,
                               letterSpacing: -1,
                             ),
                           ),
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 8, left: 4),
+                            padding: const EdgeInsets.only(bottom: 6, left: 4),
                             child: Text(
                               'kW',
                               style: AppTypography.titleM.copyWith(
@@ -314,6 +315,47 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ],
                       );
                     },
+                  ),
+                  const SizedBox(height: 16),
+                  // 예상 수익 지표 (통합)
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.successLight,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '💰 예상 수익',
+                      style: AppTypography.labelM.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        NumberFormat('#,###').format(summary.todayRevenue),
+                        style: AppTypography.headlineL.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.text1,
+                          fontSize: 24,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4, left: 4),
+                        child: Text(
+                          '원',
+                          style: AppTypography.bodyM.copyWith(
+                            color: AppColors.text2,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -483,64 +525,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 16),
-
-        // 예상 손실액 카드 (Bottom)
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('📉 예상 수익 (오늘)',
-                      style: AppTypography.labelL
-                          .copyWith(color: AppColors.text2)),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${currencyFormat.format(summary.todayRevenue)} 원',
-                    style: AppTypography.headlineM.copyWith(
-                        fontWeight: FontWeight.w800, color: AppColors.text1),
-                  ),
-                ],
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
+        // vs 어제 트렌드 (간결하게 표시)
+        if (summary.yesterdayRevenueDiff != 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 12, left: 8),
+            child: Row(
+              children: [
+                Icon(
+                  summary.yesterdayRevenueDiff >= 0
+                      ? Icons.trending_up
+                      : Icons.trending_down,
+                  size: 16,
                   color: summary.yesterdayRevenueDiff >= 0
-                      ? AppColors.success.withValues(alpha: 0.1)
-                      : AppColors.danger.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                      ? AppColors.success
+                      : AppColors.danger,
                 ),
-                child: Text(
-                  '${summary.yesterdayRevenueDiff >= 0 ? '▲' : '▼'}${currencyFormat.format(summary.yesterdayRevenueDiff.abs())}원\nvs 어제',
-                  textAlign: TextAlign.right,
+                const SizedBox(width: 4),
+                Text(
+                  '어제 대비 ${summary.yesterdayRevenueDiff >= 0 ? '+' : ''}${currencyFormat.format(summary.yesterdayRevenueDiff)}원',
                   style: AppTypography.caption.copyWith(
                     color: summary.yesterdayRevenueDiff >= 0
                         ? AppColors.success
                         : AppColors.danger,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
       ],
     );
   }
