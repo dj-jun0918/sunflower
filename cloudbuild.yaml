@@ -1,45 +1,46 @@
 # =============================================================================
-# Solar Eye Backend - Cloud Build Configuration
-# =============================================================================
-# Extended timeout for heavy ML dependencies
+# Solar Eye Backend - Optimized Cloud Build (Root Version)
 # =============================================================================
 
 steps:
-  # Build Docker image
+  # 1. Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '-t'
-      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
-      - '.'
+    args: [
+      'build', 
+      '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest', 
+      '.'
+    ]
     dir: 'solar_eye_backend'
 
-  # Push to Artifact Registry
+  # 2. Push to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
+    args: [
+      'push', 
+      'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest'
+    ]
 
-  # Deploy to Cloud Run
+  # 3. Deploy to Cloud Run (RTX 6000 + High Perf)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'gcloud'
-    args:
-      - 'run'
-      - 'deploy'
-      - 'solar-eye-backend-gpu'
-      - '--image'
-      - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
-      - '--region'
-      - 'asia-southeast1'
-      - '--platform'
-      - 'managed'
+    args: [
+      'run', 'deploy', 'sunflower-backend',
+      '--image', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--gpu', '1',
+      '--gpu-type', 'nvidia-rtx-pro-6000',
+      '--cpu', '20',
+      '--memory', '80Gi',
+      '--no-cpu-throttling'
+    ]
 
 images:
-  - 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/solar-eye-backend-gpu:latest'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest'
 
-# Extended timeout: 1 hour (3600 seconds)
 timeout: '3600s'
 
 options:
-  # Use a more powerful machine for faster builds
+  # 빌드 속도 향상을 위한 고성능 머신 (최대 32코어)
   machineType: 'E2_HIGHCPU_32'
+  logging: 'CLOUD_LOGGING_ONLY'
