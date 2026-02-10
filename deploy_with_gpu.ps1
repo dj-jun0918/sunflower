@@ -24,9 +24,9 @@ gcloud run deploy $SERVICE_NAME `
     --allow-unauthenticated `
     --port 8000 `
     --gpu 1 `
-    --gpu-type nvidia-l4 `
-    --cpu 4 `
-    --memory 16Gi `
+    --gpu-type nvidia-rtx-pro-6000 `
+    --cpu 20 `
+    --memory 80Gi `
     --no-cpu-throttling `
     --min-instances 1 `
     --max-instances 2 `

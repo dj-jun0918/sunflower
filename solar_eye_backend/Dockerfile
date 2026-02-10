@@ -1,23 +1,20 @@
 # =============================================================================
 # Solar Eye Backend - Dockerfile (Production)
 # =============================================================================
-# GPU 지원 및 AI 파이프라인을 위한 프로덕션 이미지
+# TensorFlow GPU 공식 이미지 기반 - JIT 컴파일 문제 해결
 # =============================================================================
-# Force Rebuild: 2026-02-06
-# 1. Base Image
-# GPU 사용을 위해 NVIDIA CUDA 이미지 사용 (Ubuntu 22.04 includes Python 3.10)
-# GPU 사용을 위해 NVIDIA CUDA 이미지 사용 (빌드 호환성을 위해 devel 이미지 권장)
-FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+# Force Rebuild: 2026-02-10 (TensorFlow Official GPU Image)
+
+# 1. Base Image - TensorFlow 공식 GPU 이미지
+# CUDA 커널이 미리 컴파일되어 있어서 JIT 컴파일 지연 없음
+FROM tensorflow/tensorflow:2.16.1-gpu
 
 # 2. Build Arguments
 ARG DEBIAN_FRONTEND=noninteractive
 
 # 3. System Dependencies
-# Python 및 필수 패키지 설치
+# TensorFlow 이미지에 포함되지 않은 패키지 설치
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    python3-pip \
-    python3-dev \
     # OpenCV 의존성
     libgl1 \
     libglib2.0-0 \
@@ -35,38 +32,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Python 별칭 설정 (python -> python3)
-RUN ln -s /usr/bin/python3 /usr/bin/python
-
 # 4. Work Directory
 WORKDIR /app
 
 # 5. Install Python Dependencies
-# 캐싱 효율을 위해 requirements.txt 먼저 복사
+# TensorFlow와 Keras는 베이스 이미지에 포함되어 있으므로 requirements에서 제외됨
 COPY requirements.txt .
-RUN python3 -m pip install --no-cache-dir --upgrade pip \
-    && python3 -m pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
 
 # 6. Apply basicsr compatibility patch
-# torchvision 0.17+ 대응을 위한 import 수정 (find 명령어로 위치 자동 검색)
+# torchvision 0.17+ 대응을 위한 import 수정
 RUN find /usr/local/lib/python3* -name degradations.py -exec sed -i 's/from torchvision.transforms.functional_tensor import rgb_to_grayscale/from torchvision.transforms.functional import rgb_to_grayscale/g' {} + || echo "Warning: basicsr patch skipped"
 
 # 7. Copy Application Code
 COPY . .
 
-# 7. Create directories for uploads and snapshots
+# 8. Create directories for uploads and snapshots
 RUN mkdir -p uploads snapshots logs && chmod 777 uploads snapshots logs
 
-# 8. Expose Port
+# 9. Expose Port
 # Cloud Run sets the PORT environment variable (default 8080)
 ENV PORT=8080
 EXPOSE ${PORT}
 
-# 9. Health Check
-# Increased start-period to 120s for slow model loading on CPU/Cold Start
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
+# 10. Health Check
+# GPU 이미지로 변경하여 start-period 단축 가능
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# 10. Run Application
-# Use shell form to expand ${PORT} variable
+# 11. Run Application
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 1
