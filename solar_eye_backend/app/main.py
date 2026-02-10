@@ -170,11 +170,20 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
-    """헬스 체크 엔드포인트"""
+    """헬스 체크 엔드포인트 - AI 파이프라인 상태 포함"""
+    from app.ai import _pipeline_instance
+    
+    # GPU 확인
+    import tensorflow as tf
+    gpus = tf.config.list_physical_devices('GPU')
+    
     return {
         "status": "healthy",
         "app_name": settings.app_name,
         "environment": settings.app_env,
+        "ai_pipeline": "loaded" if _pipeline_instance is not None else "initializing_or_failed",
+        "gpu_available": len(gpus) > 0,
+        "gpu_count": len(gpus)
     }
 
 

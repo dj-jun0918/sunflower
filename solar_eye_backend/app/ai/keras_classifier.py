@@ -6,9 +6,13 @@ TensorFlow 기반 추론
 """
 
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
+
+# Keras 3 Read-only filesystem fix
+os.environ['KERAS_HOME'] = '/tmp/keras'
 
 import cv2
 import numpy as np
@@ -56,8 +60,9 @@ class KerasClassifier:
         # 모델 로드
         logger.info(f"Keras 모델 로드 중: {model_path}")
         try:
-            # compile=False: 학습 설정 무시 (호환성 문제 해결)
-            self.model = keras.models.load_model(self.model_path, compile=False)
+            # compile=False: 학습 설정 무시
+            # safe_mode=False: Keras 3 데시리얼라이즈 보안 검사 우회 (이전 버전 모델 호환성)
+            self.model = keras.models.load_model(self.model_path, compile=False, safe_mode=False)
             logger.info("Keras 모델 로드 완료")
             
             # 모델 입력 형상 확인 (가능한 경우)

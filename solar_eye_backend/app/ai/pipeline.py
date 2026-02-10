@@ -262,18 +262,24 @@ def get_pipeline() -> SolarPanelPipeline:
     global _pipeline_instance
     
     if _pipeline_instance is None:
-        # 모델 경로 설정
-        # Cloud Run에서는 GCS 마운트 경로 사용, 로컬에서는 상대 경로 사용
-        gcs_mount_path = Path("/app/ai/models")
-        local_path = Path(__file__).parent / "models"
+        # 모델 경로 설정 (경로 탐색 우선순위)
+        search_paths = [
+            Path("/mnt/models"),           # GCS Fuse 표준 마운트 경로
+            Path("/app/ai/models"),        # Cloud Run 상대 마운트 후보 1
+            Path("/app/app/ai/models"),    # Cloud Run 상대 마운트 후보 2
+            Path(__file__).parent / "models" # 로컬 개발 환경
+        ]
         
-        # GCS 마운트 경로가 존재하면 우선 사용
-        if gcs_mount_path.exists():
-            base_path = gcs_mount_path
-            logger.info(f"Using GCS mount path: {base_path}")
-        else:
-            base_path = local_path
-            logger.info(f"Using local path: {base_path}") 
+        base_path = None
+        for p in search_paths:
+            if p.exists() and any(p.iterdir()):
+                base_path = p
+                logger.info(f"✅ AI 모델 경로 발견: {base_path}")
+                break
+        
+        if base_path is None:
+            base_path = Path("/app/ai/models") # Fallback
+            logger.warning(f"⚠️ 모델 경로를 찾지 못했습니다. 기본값 사용: {base_path}")
         
         # Models
         cctv_model = base_path / "cctv-yolo26m40000.pt"
