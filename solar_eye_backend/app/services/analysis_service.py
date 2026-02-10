@@ -461,9 +461,7 @@ class AnalysisService:
                 logger.info(f"CCTV Detection: {len(detections)} panels")
                 
                 if not detections:
-                    return AnalysisResultSchema(
-                        total_panels=0, normal_count=0, defect_count=0, soiling_count=0, detections=[]
-                    ), {}
+                    return [], [], []
 
                 crops = []
                 enhanced_crops = []
@@ -667,6 +665,7 @@ class AnalysisService:
         탐지 결과를 DB에 저장
         """
         saved_ids = []
+        added_detections = []
         
         for detection in analysis_result.detections:
             # Create snapshot if image is provided

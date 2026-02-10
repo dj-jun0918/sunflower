@@ -275,9 +275,9 @@ def get_pipeline() -> SolarPanelPipeline:
         base_path = Path(__file__).parent / "models" 
         
         # Models (Updated to match lssunflower branch deployment)
-        cctv_model = base_path / "cctv-yolo26m40000.pt"
-        drone_model = base_path / "airshot-yolo26m80k.pt"
-        keras_model = base_path / "effcienNetmodels.keras"
+        cctv_model = base_path / "yolo26m40000_weights_best.pt"
+        drone_model = base_path / "yolo26m80k_weights_best.pt"
+        keras_model = base_path / "best_solar_model.keras"
         esrgan_model = base_path / "RealESRGAN.pth"
         segformer_model = base_path / "segformer"
         
