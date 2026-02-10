@@ -89,42 +89,10 @@ async def send_push_notification(
     payload: FCMPayload,
 ) -> Optional[str]:
     """
-    단일 기기에 FCM 푸시 알림 발송
-
-    Args:
-        fcm_token: FCM 토큰
-        payload: 알림 페이로드
-
-    Returns:
-        str: 메시지 ID (성공 시)
-        None: 발송 실패 시
+    [DISABLED] 단일 기기에 FCM 푸시 알림 발송 - 버그 및 성능 이슈로 비활성화됨
     """
-    if not get_firebase_app():
-        logger.warning("Firebase not initialized. Push notification skipped.")
-        return None
-
-    try:
-        message = messaging.Message(
-            notification=payload.to_notification(),
-            android=payload.to_android_config(),
-            apns=payload.to_apns_config(),
-            data=payload.to_data_dict(),
-            token=fcm_token,
-        )
-
-        response = messaging.send(message)
-        logger.info(f"Push notification sent successfully: {response}")
-        return response
-
-    except messaging.UnregisteredError:
-        logger.warning(f"FCM token is unregistered: {fcm_token[:20]}...")
-        return None
-    except messaging.InvalidArgumentError as e:
-        logger.error(f"Invalid FCM argument: {e}")
-        return None
-    except Exception as e:
-        logger.error(f"Failed to send push notification: {e}")
-        return None
+    logger.info("FCM push notification is globally DISABLED.")
+    return None
 
 
 async def send_push_notification_batch(
@@ -132,46 +100,10 @@ async def send_push_notification_batch(
     payload: FCMPayload,
 ) -> tuple[int, int]:
     """
-    여러 기기에 FCM 푸시 알림 일괄 발송
-
-    Args:
-        fcm_tokens: FCM 토큰 목록
-        payload: 알림 페이로드
-
-    Returns:
-        tuple[int, int]: (성공 수, 실패 수)
+    [DISABLED] 여러 기기에 FCM 푸시 알림 일괄 발송 - 버그 및 성능 이슈로 비활성화됨
     """
-    if not get_firebase_app():
-        logger.warning("Firebase not initialized. Push notifications skipped.")
-        return 0, len(fcm_tokens)
-
-    if not fcm_tokens:
-        return 0, 0
-
-    try:
-        messages = [
-            messaging.Message(
-                notification=payload.to_notification(),
-                android=payload.to_android_config(),
-                apns=payload.to_apns_config(),
-                data=payload.to_data_dict(),
-                token=token,
-            )
-            for token in fcm_tokens
-        ]
-
-        response = messaging.send_all(messages)
-        success_count = response.success_count
-        failure_count = response.failure_count
-
-        logger.info(
-            f"Batch push notification sent: {success_count} success, {failure_count} failed"
-        )
-        return success_count, failure_count
-
-    except Exception as e:
-        logger.error(f"Failed to send batch push notifications: {e}")
-        return 0, len(fcm_tokens)
+    logger.info("FCM batch push notification is globally DISABLED.")
+    return 0, len(fcm_tokens)
 
 
 def create_defect_alert_payload(

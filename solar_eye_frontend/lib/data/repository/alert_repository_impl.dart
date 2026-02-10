@@ -14,6 +14,9 @@ class AlertRepositoryImpl implements AlertRepository {
     bool? unreadOnly,
   }) async {
     try {
+      // 3. 최근 알림 조회 (데모를 위해 비활성화 - 빈 리스트 반환)
+      return const AlertsResponse(alerts: [], total: 0, unreadCount: 0);
+      /*
       final Map<String, dynamic> queryParams = {
         'page': page,
         'limit': limit,
@@ -36,9 +39,28 @@ class AlertRepositoryImpl implements AlertRepository {
       final data = response.data as Map<String, dynamic>;
       final alertsJson = data['alerts'];
       final List<Alert> alerts = alertsJson != null && alertsJson is List
-          ? alertsJson
-              .map((e) => Alert.fromJson(e as Map<String, dynamic>))
-              .toList()
+          ? alertsJson.map((e) {
+              final Map<String, dynamic> alertMap =
+                  Map<String, dynamic>.from(e as Map<String, dynamic>);
+
+              // severity 처리: 소문자 변환 및 유효성 검사
+              String severity =
+                  (alertMap['severity'] ?? 'info').toString().toLowerCase();
+              if (!['info', 'warning', 'danger'].contains(severity)) {
+                severity = 'info';
+              }
+              alertMap['severity'] = severity;
+
+              // 필수 필드 안전 처리
+              alertMap['id'] = (alertMap['id'] ?? 'unknown').toString();
+              alertMap['title'] = (alertMap['title'] ?? '알림').toString();
+              alertMap['message'] = (alertMap['message'] ?? '내용 없음').toString();
+              if (alertMap['createdAt'] == null) {
+                alertMap['createdAt'] = DateTime.now().toIso8601String();
+              }
+
+              return Alert.fromJson(alertMap);
+            }).toList()
           : [];
 
       return AlertsResponse(
@@ -46,6 +68,7 @@ class AlertRepositoryImpl implements AlertRepository {
         total: data['total'] ?? 0,
         unreadCount: data['unread_count'] ?? data['unreadCount'] ?? 0,
       );
+      */
     } catch (e) {
       throw Exception('알림 목록을 불러오는데 실패했습니다: $e');
     }

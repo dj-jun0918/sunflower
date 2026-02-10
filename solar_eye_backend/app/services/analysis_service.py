@@ -331,7 +331,7 @@ class AnalysisService:
                 raise ValueError("이미지 디코딩 실패")
             
             logger.info("AI 분석 시작")
-            print("DEBUG: Starting AI Pipeline analysis...")
+            print(f"DEBUG: Starting AI Pipeline analysis for type: {monitoring_type}")
             
             # AI 분석 실행
             results: List[PanelAnalysisResult] = pipeline.analyze(
@@ -340,6 +340,9 @@ class AnalysisService:
             )
             
             print(f"DEBUG: Analysis completed. Results count: {len(results)}")
+            for idx, r in enumerate(results):
+                print(f"DEBUG: Result[{idx}] - Type: {r.defect_type}, Conf: {r.class_confidence}")
+            
             logger.info(f"AI 분석 완료! 패널 {len(results)}개 탐지")
             
             # 결과 집계
