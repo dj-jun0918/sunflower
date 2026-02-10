@@ -540,11 +540,47 @@ class AnalysisService:
             defect_count = 0
             soiling_count = 0
             
+            import json
             for i, seg_result in enumerate(seg_results):
                 original_idx = valid_indices[i]
                 detection = detections_raw[original_idx]
                 
                 defect_subtype = None
+                mask_json = None
+                
+                # 마스크 처리 (Numpy -> Polygon JSON)
+                if seg_result.mask is not None:
+                    try:
+                        # 1. 클래스 맵에서 해당 결함 유형에 맞는 바이너리 마스크 생성
+                        # 0: Normal, 1: Crack/Defect, 2: Soiling
+                        target_class = 0
+                        if seg_result.defect_type == "defect":
+                            target_class = 1 # Crack
+                        elif seg_result.defect_type == "soiling":
+                            target_class = 2 # Soiling
+                        
+                        binary_mask = (seg_result.mask == target_class).astype(np.uint8) * 255
+                        
+                        # 2. 컨투어 추출
+                        contours, _ = cv2.findContours(binary_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                        
+                        polygons = []
+                        for contour in contours:
+                            # 단순화
+                            epsilon = 0.005 * cv2.arcLength(contour, True)
+                            approx = cv2.approxPolyDP(contour, epsilon, True)
+                            
+                            # 포인트 변환
+                            points = approx.reshape(-1, 2).tolist()
+                            if len(points) >= 3:
+                                polygons.append(points)
+                        
+                        if polygons:
+                            mask_json = json.dumps(polygons)
+                            print(f"DEBUG: Mask JSON generated for panel {i}! Len: {len(mask_json)}")
+                    except Exception as e:
+                        logger.error(f"Panel {i} mask conversion failed: {e}")
+
                 if seg_result.defect_type == "defect":
                     defect_subtype = "crack"
                     defect_count += 1
@@ -564,9 +600,9 @@ class AnalysisService:
                     panel_confidence=detection.confidence,
                     defect_type=seg_result.defect_type,
                     defect_subtype=defect_subtype,
-                    class_confidence=seg_result.confidence, # Changed from defect_ratio to confidence
+                    class_confidence=seg_result.confidence,
                     raw_class_name=seg_result.defect_type,
-                    mask=None  # 마스크는 이미지로 저장했으므로 JSON은 생략
+                    mask=mask_json
                 ))
             
             return AnalysisResultSchema(
