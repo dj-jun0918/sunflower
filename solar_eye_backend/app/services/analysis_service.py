@@ -499,7 +499,11 @@ class AnalysisService:
                     ), {}
 
                 # 2. SegFormer Batch Prediction
-                MAX_BATCH_SIZE = 8
+                # Memory Optimization: Clear cache before heavy batch processing
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                
+                MAX_BATCH_SIZE = 4 # Reduced from 8 to prevent OOM
                 seg_results = pipeline.seg_classifier.predict_batch(enhanced_crops, batch_size=MAX_BATCH_SIZE)
                 
                 # Cleanup CUDA once after batch

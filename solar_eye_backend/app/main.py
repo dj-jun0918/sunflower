@@ -5,6 +5,10 @@ FastAPI 앱 인스턴스 및 기본 설정
 """
 
 import logging
+import os
+# Optimize PyTorch memory allocation
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI

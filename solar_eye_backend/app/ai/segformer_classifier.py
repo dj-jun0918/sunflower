@@ -144,7 +144,8 @@ class SegFormerClassifier:
                     results.append(SegmentationResult(
                         mask=np.zeros((1, 1), dtype=np.uint8), 
                         defect_type="normal",  # fallback to valid DB enum 
-                        defect_ratio=0.0
+                        defect_ratio=0.0,
+                        confidence=0.0
                     ))
                     
         return results
