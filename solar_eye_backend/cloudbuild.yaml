@@ -1,39 +1,45 @@
+# =============================================================================
+# Solar Eye Backend - Optimized Cloud Build (GCloud Shell Version)
+# =============================================================================
+
 steps:
   # 1. Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/solar-eye-repo/backend:$COMMIT_SHA', '-f', 'docker/Dockerfile', '.']
+    args: [
+      'build', 
+      '-t', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest', 
+      '.'
+    ]
 
-  # 2. Push the image to Artifact Registry
+  # 2. Push to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/solar-eye-repo/backend:$COMMIT_SHA']
+    args: [
+      'push', 
+      'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest'
+    ]
 
-  # 3. Apply Database Migrations (Optional - using a transient container)
-  #  - name: 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/solar-eye-repo/backend:$COMMIT_SHA'
-  #    entrypoint: 'alembic'
-  #    args: ['upgrade', 'head']
-  #    env:
-  #      - 'DATABASE_URL=$_DATABASE_URL'
-  #      # Note: Cloud Build needs Cloud SQL Proxy or similar to access Cloud SQL usually
-
-  # 4. Deploy to Cloud Run
+  # 3. Deploy to Cloud Run (RTX 6000 + High Perf)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'solar-eye-backend'
-      - '--image'
-      - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/solar-eye-repo/backend:$COMMIT_SHA'
-      - '--region'
-      - 'asia-northeast3'
-      - '--platform'
-      - 'managed'
-      - '--port'
-      - '8000'
-      - '--allow-unauthenticated'
-      - '--set-env-vars'
-      - 'APP_ENV=production,DEBUG=false'
-      # Secrets and DB connections should be set in the Cloud Run service revision or via triggers
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'sunflower-backend',
+      '--image', 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest',
+      '--region', 'us-central1',
+      '--platform', 'managed',
+      '--allow-unauthenticated',
+      '--gpu', '1',
+      '--gpu-type', 'nvidia-rtx-pro-6000',
+      '--cpu', '20',
+      '--memory', '80Gi',
+      '--no-cpu-throttling'
+    ]
 
 images:
-  - 'asia-northeast3-docker.pkg.dev/$PROJECT_ID/solar-eye-repo/backend:$COMMIT_SHA'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/cloud-run-source-deploy/sunflower-backend:latest'
+
+timeout: '3600s'
+
+options:
+  # 빌드 속도 향상을 위한 고성능 머신 (최대 32코어)
+  machineType: 'E2_HIGHCPU_32'
+  logging: 'CLOUD_LOGGING_ONLY'
