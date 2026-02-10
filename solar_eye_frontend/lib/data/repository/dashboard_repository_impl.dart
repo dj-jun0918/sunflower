@@ -97,26 +97,44 @@ class DashboardRepositoryImpl implements DashboardRepository {
         return d.detectedAt.isAfter(todayStart);
       }).toList();
 
-      // 3. 최근 알림 조회
-      final alertsResponse = await _dio.get('/api/v1/alerts');
-
+      // 3. 최근 알림 조회 (데모를 위해 비활성화 - 빈 리스트 반환)
+      // final alertsResponse = await _dio.get('/api/v1/alerts');
       List<Alert> alerts = [];
-      if (alertsResponse.data != null && alertsResponse.data is Map) {
-        // 백엔드 응답: {success: true, data: [...]}
-        final alertsJson =
-            alertsResponse.data['data'] ?? alertsResponse.data['alerts'];
-        if (alertsJson != null && alertsJson is List) {
-          alerts = alertsJson.map((e) {
-            // id 타입 변환
-            final Map<String, dynamic> transformed =
-                Map<String, dynamic>.from(e);
-            transformed['id'] = e['id'].toString();
-            if (e['panelId'] != null)
-              transformed['panelId'] = e['panelId'].toString();
-            return Alert.fromJson(transformed);
-          }).toList();
-        }
-      }
+      // if (alertsResponse.data != null && alertsResponse.data is Map) {
+      //   // 백엔드 응답: {success: true, data: [...]}
+      //   final alertsJson =
+      //       alertsResponse.data['data'] ?? alertsResponse.data['alerts'];
+      //   if (alertsJson != null && alertsJson is List) {
+      //     alerts = alertsJson.map((e) {
+      //       // id 타입 변환 및 severity 검증
+      //       final Map<String, dynamic> transformed =
+      //           Map<String, dynamic>.from(e);
+      //       // id 처리
+      //       transformed['id'] = (e['id'] ?? 'unknown').toString();
+      //       if (e['panelId'] != null)
+      //         transformed['panelId'] = e['panelId'].toString();
+
+      //       // severity 처리
+      //       String severity =
+      //           (e['severity'] ?? 'info').toString().toLowerCase();
+      //       if (!['info', 'warning', 'danger'].contains(severity)) {
+      //         severity = 'info';
+      //       }
+      //       transformed['severity'] = severity;
+
+      //       // 필수 String 필드 안전 처리
+      //       transformed['title'] = (e['title'] ?? '알림').toString();
+      //       transformed['message'] = (e['message'] ?? '내용 없음').toString();
+
+      //       // createdAt 안전 처리
+      //       if (transformed['createdAt'] == null) {
+      //         transformed['createdAt'] = DateTime.now().toIso8601String();
+      //       }
+
+      //       return Alert.fromJson(transformed);
+      //     }).toList();
+      //   }
+      // }
 
       // 데이터 집계
       final normalPanels =
