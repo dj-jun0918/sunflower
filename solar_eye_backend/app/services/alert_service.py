@@ -92,7 +92,10 @@ class AlertService:
 
         # 정상 탐지는 알림하지 않음
         if detection.defect_type == "normal":
+            logger.debug(f"Alert skipped: normal detection (id={detection.id})")
             return None
+
+        logger.info(f"Creating alert for detection: id={detection.id}, type={detection.defect_type}, conf={detection.confidence}")
 
         # 알림 유형 결정
         alert_type = AlertType.SOILING if detection.defect_type == "soiling" else AlertType.DEFECT

@@ -239,7 +239,7 @@ class SolarPanelPipeline:
                 panel_confidence=detection.confidence,
                 defect_type=seg_result.defect_type,
                 defect_subtype=defect_subtype,
-                class_confidence=seg_result.defect_ratio, # Conf as ratio
+                class_confidence=seg_result.confidence, # Use improved confidence
                 raw_class_name=seg_result.defect_type,
                 mask=seg_result.mask
             ))

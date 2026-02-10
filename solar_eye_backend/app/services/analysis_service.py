@@ -8,9 +8,12 @@ import logging
 import os
 import uuid
 import shutil
+import asyncio
+import json
+import torch
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -75,7 +78,8 @@ class AnalysisService:
             logger.info(f"사용자 {user.id}: 분석 데이터를 패널 {facility_id}에 할당함")
 
         # 1. 이미지 저장
-        upload_dir = Path("static/uploads") / datetime.now().strftime("%Y/%m")
+        project_root = Path(__file__).resolve().parents[2]
+        upload_dir = project_root / "static" / "uploads" / datetime.now().strftime("%Y/%m")
         upload_dir.mkdir(parents=True, exist_ok=True)
         
         file_ext = Path(image_file.filename).suffix
@@ -106,13 +110,16 @@ class AnalysisService:
         try:
             image_bytes = file_path.read_bytes()
             
+            print(f"DEBUG: process_analysis - monitoring_type: '{monitoring_type}'")
             if monitoring_type == "cctv":
+                print("DEBUG: Executing analyze_cctv_with_images (CCTV Path)")
                 # lssunflower 브랜치의 이미지 생성 포함 분석 로직
                 analysis_result, _ = await AnalysisService.analyze_cctv_with_images(
                     image_bytes, 
                     session.id
                 )
             else:
+                print(f"DEBUG: Executing analyze_image_bytes (General Path for {monitoring_type})")
                 # 일반 분석 로직
                 analysis_result = await AnalysisService.analyze_image_bytes(
                     image_bytes, 
@@ -158,6 +165,31 @@ class AnalysisService:
             # 현재 분석 세션의 탐지 결과들을 바탕으로 패널 상태 업데이트
             await AnalysisService._update_panel_status(db, facility_id, added_detections)
             
+            # 6. 알림 전송 (결함이 있는 경우)
+            defect_detections = [d for d in added_detections if d.defect_type in [DefectType.DEFECT, DefectType.SOILING]]
+            logger.info(f"Analysis complete: {len(added_detections)} detections, {len(defect_detections)} defects/soilings")
+            
+            if defect_detections:
+                try:
+                    # Ensure user and panel are ready for alert service
+                    await db.refresh(user)
+                    await db.refresh(panel)
+                    
+                    alert_service = AlertService(db)
+                    # 시설 소유자에게 알림 (user 객체 사용)
+                    # 가장 신뢰도가 높은 결함 하나에 대해 알림 생성
+                    best_defect = max(defect_detections, key=lambda d: d.confidence)
+                    logger.info(f"Triggering alert for best defect: id={best_defect.id}, type={best_defect.defect_type}, conf={best_defect.confidence}")
+                    
+                    await alert_service.create_alert_from_detection(
+                        detection=best_defect,
+                        user=user,
+                        panel=panel
+                    )
+                    logger.info(f"사용자 {user.id}: 결함 감지 자동 알림 생성 성공")
+                except Exception as e:
+                    logger.error(f"자동 알림 생성 중 오류: {e}", exc_info=True)
+
             session.status = AnalysisStatus.COMPLETED
             await db.commit()
             
@@ -206,9 +238,12 @@ class AnalysisService:
         response = AnalysisResultResponse.model_validate(session)
         response.detections = detection_responses
 
+        print(f"DEBUG: get_analysis_result - session type: {session.type}")
         # CCTV 분석 결과 이미지 URL 추가 (lssunflower 프론트엔드 호환용)
         if session.type == MonitoringType.CCTV:
-            result_dir = Path("static/results") / str(analysis_id)
+            project_root = Path(__file__).resolve().parents[2]
+            result_dir = project_root / "static" / "results" / str(analysis_id)
+            print(f"DEBUG: Checking result_dir: {result_dir.absolute()} (Exists: {result_dir.exists()})")
             if result_dir.exists():
                 from app.schemas.monitoring import CropImageSchema
                 crop_images = []
@@ -224,11 +259,17 @@ class AnalysisService:
                             defect_type=det.defect_type.value,
                             confidence=det.confidence
                         ))
+                    else:
+                        print(f"DEBUG: Files missing for panel {i}: {enhanced_path} or {mask_path}")
+                        
                 response.crop_images = crop_images
+                print(f"DEBUG: Found {len(crop_images)} crop images")
                 
                 if crop_images:
                     response.enhanced_image_url = crop_images[0].url
                     response.mask_image_url = crop_images[0].mask_url
+            else:
+                print("DEBUG: Result directory not found!")
         
         return response
 
@@ -404,68 +445,77 @@ class AnalysisService:
                 raise ValueError("이미지 디코딩 실패")
             
             logger.info("CCTV AI 분석 시작 (ESRGAN + SegFormer 이미지 저장 포함)")
+            print("DEBUG: analyze_cctv_with_images started")
             
             # 결과 저장 디렉토리 생성
-            result_dir = Path("static/results") / str(session_id)
+            # Use absolute path relative to project root to avoid CWD issues
+            project_root = Path(__file__).resolve().parents[2]
+            result_dir = project_root / "static" / "results" / str(session_id)
             result_dir.mkdir(parents=True, exist_ok=True)
+            print(f"DEBUG: Created result dir (absolute): {result_dir.absolute()}")
             
-            # YOLO Detection
-            detections = pipeline.cctv_detector.detect(image)
-            logger.info(f"CCTV Detection: {len(detections)} panels")
-            
-            if not detections:
-                # 빈 결과 반환
-                return AnalysisResultSchema(
-                    total_panels=0,
-                    normal_count=0,
-                    defect_count=0,
-                    soiling_count=0,
-                    detections=[],
-                ), {}
-            
-            # Crop & Enhancement
-            crops = []
-            enhanced_crops = []
-            valid_indices = []
-            
-            for i, detection in enumerate(detections):
-                cropped = pipeline._crop_panel(image, detection.bbox)
-                if cropped.shape[0] >= 10 and cropped.shape[1] >= 10:
-                    crops.append(cropped)
-                    
-                    # Real-ESRGAN Enhancement
-                    try:
-                        enhanced = pipeline.enhancer.enhance(cropped)
-                        enhanced_crops.append(enhanced)
+            # --- Heavy Analysis Logic wrapped in Sync Helper ---
+            def _run_analysis_sync():
+                # 1. YOLO Detection
+                detections = pipeline.cctv_detector.detect(image)
+                logger.info(f"CCTV Detection: {len(detections)} panels")
+                
+                if not detections:
+                    return AnalysisResultSchema(
+                        total_panels=0, normal_count=0, defect_count=0, soiling_count=0, detections=[]
+                    ), {}
+
+                crops = []
+                enhanced_crops = []
+                valid_indices = []
+                
+                for i, detection in enumerate(detections):
+                    cropped = pipeline._crop_panel(image, detection.bbox)
+                    if cropped.shape[0] >= 10 and cropped.shape[1] >= 10:
+                        crops.append(cropped)
                         
-                        # Enhanced 이미지 저장 (각 패널별로)
-                        enhanced_path = result_dir / f"enhanced_{i}.jpg"
-                        cv2.imwrite(str(enhanced_path), enhanced)
-                    except Exception as e:
-                        logger.error(f"Enhancement failed for panel {i}: {e}")
-                        enhanced_crops.append(cropped)
-                        # 실패 시에도 원본 저장
-                        enhanced_path = result_dir / f"enhanced_{i}.jpg"
-                        cv2.imwrite(str(enhanced_path), cropped)
+                        # Real-ESRGAN Optimization: Skip if already large enough (>256px)
+                        try:
+                            # 256px is usually enough for SegFormer to get good features
+                            if cropped.shape[0] < 256 and cropped.shape[1] < 256:
+                                enhanced = pipeline.enhancer.enhance(cropped)
+                            else:
+                                # Skip enhancement for already large crops to save time
+                                enhanced = cropped
+                            
+                            enhanced_crops.append(enhanced)
+                            
+                            # Enhanced 이미지 저장
+                            enhanced_path = result_dir / f"enhanced_{i}.jpg"
+                            cv2.imwrite(str(enhanced_path), enhanced)
+                        except Exception as e:
+                            logger.error(f"Enhancement failed for panel {i}: {e}")
+                            enhanced_crops.append(cropped)
+                            cv2.imwrite(str(result_dir / f"enhanced_{i}.jpg"), cropped)
+                        
+                        valid_indices.append(i)
+                
+                if not enhanced_crops:
+                    return AnalysisResultSchema(
+                        total_panels=0, normal_count=0, defect_count=0, soiling_count=0, detections=[]
+                    ), {}
+
+                # 2. SegFormer Batch Prediction
+                MAX_BATCH_SIZE = 8
+                seg_results = pipeline.seg_classifier.predict_batch(enhanced_crops, batch_size=MAX_BATCH_SIZE)
+                
+                # Cleanup CUDA once after batch
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                     
-                    valid_indices.append(i)
-            
-            if not enhanced_crops:
-                return AnalysisResultSchema(
-                    total_panels=0,
-                    normal_count=0,
-                    defect_count=0,
-                    soiling_count=0,
-                    detections=[],
-                ), {}
-            
-            # SegFormer Classification
-            # L4 GPU 2장: 배치 사이즈 8로 동시 처리
-            MAX_BATCH_SIZE = 8 
-            seg_results = pipeline.seg_classifier.predict_batch(enhanced_crops, batch_size=MAX_BATCH_SIZE)
+                return seg_results, valid_indices, detections
+
+            # Run the heavy sync logic in a separate thread to avoid blocking FastAPI
+            seg_results, valid_indices, detections_raw = await asyncio.to_thread(_run_analysis_sync)
             
             # 각 패널별로 마스크 컬러 이미지 생성 및 저장
             for idx, seg_result in enumerate(seg_results):
+                mask_path = result_dir / f"mask_{idx}.jpg"
                 if seg_result.mask is not None:
                     mask = seg_result.mask
                     # 마스크를 컬러 이미지로 변환 (0=초록, 1=노랑, 2=빨강)
@@ -474,8 +524,10 @@ class AnalysisService:
                     color_mask[mask == 1] = [0, 255, 255]  # Soiling - Yellow
                     color_mask[mask == 2] = [0, 0, 255]  # Crack - Red
                     
-                    mask_path = result_dir / f"mask_{idx}.jpg"
                     cv2.imwrite(str(mask_path), color_mask)
+                    print(f"DEBUG: Saved mask image: {mask_path}")
+                else:
+                    print(f"DEBUG: No mask for panel {idx}")
             
             # 결과 집계
             results = []
@@ -485,7 +537,7 @@ class AnalysisService:
             
             for i, seg_result in enumerate(seg_results):
                 original_idx = valid_indices[i]
-                detection = detections[original_idx]
+                detection = detections_raw[original_idx]
                 
                 defect_subtype = None
                 if seg_result.defect_type == "defect":
@@ -507,7 +559,7 @@ class AnalysisService:
                     panel_confidence=detection.confidence,
                     defect_type=seg_result.defect_type,
                     defect_subtype=defect_subtype,
-                    class_confidence=seg_result.defect_ratio,
+                    class_confidence=seg_result.confidence, # Changed from defect_ratio to confidence
                     raw_class_name=seg_result.defect_type,
                     mask=None  # 마스크는 이미지로 저장했으므로 JSON은 생략
                 ))
@@ -571,26 +623,36 @@ class AnalysisService:
                 # 패널 소유자에게 알림
                 if panel.user_id and saved_ids:
                     alert_service = AlertService(db)
-                    # Get the first defect detection object
-                    stmt = select(Detection).where(Detection.id == saved_ids[0])
-                    res = await db.execute(stmt)
-                    first_detection = res.scalar_one_or_none()
                     
-                    if first_detection:
+                    # 저장된 탐지 결과들을 가져옴
+                    stmt = select(Detection).where(Detection.id.in_(saved_ids))
+                    res = await db.execute(stmt)
+                    saved_detections = res.scalars().all()
+                    
+                    # 결함이나 오염인 것들만 필터링
+                    defect_detections = [
+                        d for d in saved_detections 
+                        if d.defect_type in [DefectType.DEFECT, DefectType.SOILING]
+                    ]
+                    
+                    if defect_detections:
+                        # 가장 신뢰도가 높은 결함 하나에 대해 알림 생성
+                        best_defect = max(defect_detections, key=lambda d: d.confidence)
+                        
                         # Get user for FCM token
                         res_user = await db.execute(select(User).where(User.id == panel.user_id))
                         user = res_user.scalar_one_or_none()
                         
                         if user:
                             await alert_service.create_alert_from_detection(
-                                detection=first_detection,
+                                detection=best_defect,
                                 user=user,
                                 panel=panel
                             )
                             alert_sent = True
-                            logger.info(f"패널 {panel_id}: 알림 전송 완료")
+                            logger.info(f"패널 {panel_id}: 결함 감지 수동 저장 알림 생성 완료")
             except Exception as e:
-                logger.error(f"알림 전송 중 오류: {e}")
+                logger.error(f"수동 저장 알림 생성 중 오류: {e}")
         
         return analysis_result, saved_ids, alert_sent
     
@@ -681,7 +743,8 @@ class AnalysisService:
             # 디렉토리 생성
             now = datetime.now()
             rel_path = f"snapshots/{now.strftime('%Y/%m/%d')}"
-            save_dir = Path("static") / rel_path
+            project_root = Path(__file__).resolve().parents[2]
+            save_dir = project_root / "static" / rel_path
             save_dir.mkdir(parents=True, exist_ok=True)
             
             file_name = f"{uuid.uuid4().hex[:12]}_{defect_type}.jpg"

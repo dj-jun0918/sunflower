@@ -26,6 +26,7 @@ class SegmentationResult:
     mask: np.ndarray       # Class Map
     defect_type: str       # 대표 결함 유형 (normal/defect/soiling)
     defect_ratio: float    # 결함 영역 비율
+    confidence: float      # 분류 신뢰도
 
 class SegFormerClassifier:
     """
@@ -134,9 +135,7 @@ class SegFormerClassifier:
                 for mask in predicted_masks:
                     results.append(self._analyze_mask(mask))
                 
-                # 메모리 정리
-                if self.device == 'cuda':
-                    torch.cuda.empty_cache()
+                pass
                     
             except Exception as e:
                 logger.error(f"SegFormer 배치 추론 중 오류: {e}")
@@ -164,13 +163,17 @@ class SegFormerClassifier:
         # 결함 판정 (임계값 0.1% - 조정 가능)
         if crack_ratio > 0.001:
             defect_type = "defect" # Crack -> Defect
+            confidence = 0.5 + (crack_ratio * 0.5) # Base 0.5 + ratio
         elif soiling_ratio > 0.001:
             defect_type = "soiling"
+            confidence = 0.5 + (soiling_ratio * 0.5) # Base 0.5 + ratio
         else:
             defect_type = "normal"
+            confidence = 1.0 - max(crack_ratio, soiling_ratio)
             
         return SegmentationResult(
             mask=mask.astype(np.uint8),
             defect_type=defect_type,
-            defect_ratio=max(crack_ratio, soiling_ratio)
+            defect_ratio=max(crack_ratio, soiling_ratio),
+            confidence=confidence
         )
