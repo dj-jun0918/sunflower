@@ -378,8 +378,8 @@ class AnalysisService:
                         
                         polygons = []
                         for contour in contours:
-                            # Simplify contour
-                            epsilon = 0.005 * cv2.arcLength(contour, True)
+                            # Simplify contour (Increased epsilon for smoother, less complex polygons)
+                            epsilon = 0.01 * cv2.arcLength(contour, True)
                             approx = cv2.approxPolyDP(contour, epsilon, True)
                             
                             # Convert to list of [x, y]

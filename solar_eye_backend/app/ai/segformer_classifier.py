@@ -98,8 +98,8 @@ class SegFormerClassifier:
             
         results = []
         
-        # BGR -> RGB 변환 (테스트: 제거해보고 결과 변화 확인)
-        rgb_images = images # [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in images]
+        # BGR -> RGB 변환 복구 (학습 시 RGB로 학습됨)
+        rgb_images = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in images]
         
         for i in range(0, len(rgb_images), batch_size):
             batch = rgb_images[i : i + batch_size]
@@ -138,11 +138,10 @@ class SegFormerClassifier:
                     # 마스크 변환 (H, W)
                     mask = upsampled_logits.argmax(dim=1).squeeze(0).cpu().numpy()
                     
-                    # --- RAW DEBUG ---
-                    if j == 0: # 첫 번째 이미지에 대해서만 상세 로깅
-                        avg_probs = single_probs.mean(dim=(2, 3)).squeeze().cpu().numpy()
-                        print(f"DEBUG: [RAW] Avg Probs: {avg_probs}")
-                        print(f"DEBUG: [RAW] Pixels 0-5 RGB: {batch[j][0, :5]}")
+                    # --- RAW DEBUG (사용자 요청 시 활성화 가능) ---
+                    # if j == 0: 
+                    #     avg_probs = single_probs.mean(dim=(2, 3)).squeeze().cpu().numpy()
+                    #     print(f"DEBUG: [RAW] Avg Probs: {avg_probs}")
                     
                     results.append(self._analyze_mask(mask))
                 
@@ -168,32 +167,35 @@ class SegFormerClassifier:
         return results
 
     def _analyze_mask(self, mask: np.ndarray) -> SegmentationResult:
-        """마스크 분석하여 결함 유형 결정"""
+        """마스크 분석하여 결함 유형 결정 (정교화된 판단 로직)"""
         total_pixels = mask.size
         
-        # 0: Normal, 1: Soiling, 2: Crack (Corrected based on config.json)
+        # 0: Normal, 1: Soiling, 2: Crack (Model config.json 기준)
+        normal_pixels = np.count_nonzero(mask == 0)
         soiling_pixels = np.count_nonzero(mask == 1)
         crack_pixels = np.count_nonzero(mask == 2)
         
         crack_ratio = crack_pixels / total_pixels
         soiling_ratio = soiling_pixels / total_pixels
+        normal_ratio = normal_pixels / total_pixels
         
-        # DEBUG LOGGING (민감도 분석용 - 터미널 확인용 print 추가)
+        # DEBUG LOGGING
         if crack_pixels > 0 or soiling_pixels > 0:
-            unique_vals = np.unique(mask)
-            print(f"🔍 SegFormer Analysis [DETAILED]: Unique={unique_vals}, Crack={crack_pixels}({crack_ratio:.4f}), Soiling={soiling_pixels}({soiling_ratio:.4f}), Total={total_pixels}")
-            logger.info(f"🔍 SegFormer Analysis: Unique={unique_vals}, Crack={crack_pixels}({crack_ratio:.4f}), Soiling={soiling_pixels}({soiling_ratio:.4f}), Total={total_pixels}")
+            print(f"🔍 SegFormer [RAW]: Normal={normal_ratio:.4f}, Crack={crack_ratio:.4f}, Soiling={soiling_ratio:.4f}")
         
-        # 결함 판정 (임계값 3.0% - 대폭 상향 조정)
-        if crack_ratio > 0.03:
-            defect_type = "defect" # Crack -> Defect
-            confidence = 0.5 + (crack_ratio * 0.5) # Base 0.5 + ratio
-        elif soiling_ratio > 0.03:
+        # 결함 판정 로직 (Normal 클래스가 지배적이지 않거나, 결함 비율이 충분히 높을 때)
+        # 1. Crack 우선 판단 (더 치명적임)
+        if crack_ratio > 0.05 and crack_ratio > soiling_ratio:
+            defect_type = "defect"
+            confidence = 0.5 + (crack_ratio * 0.5)
+        # 2. Soiling 판단
+        elif soiling_ratio > 0.05:
             defect_type = "soiling"
-            confidence = 0.5 + (soiling_ratio * 0.5) # Base 0.5 + ratio
+            confidence = 0.5 + (soiling_ratio * 0.5)
+        # 3. Normal (Normal이 70% 이상이거나 결함 비율이 낮을 때)
         else:
             defect_type = "normal"
-            confidence = 1.0 - max(crack_ratio, soiling_ratio)
+            confidence = normal_ratio
             
         return SegmentationResult(
             mask=mask.astype(np.uint8),
