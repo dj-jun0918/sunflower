@@ -398,91 +398,156 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
       onTap: _analysisResult == null && !_isLoading ? _pickImage : null,
       child: Container(
         width: double.infinity,
-        height: 300,
+        height: 500, // Increased height for better visibility
         decoration: BoxDecoration(
           color: AppColors.card,
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
           border: Border.all(color: AppColors.border),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (_selectedFile != null)
-              Image.network(
-                _selectedFile!.path,
-                fit: BoxFit.cover,
-              ),
-            if (_selectedFile != null &&
-                _analysisResult != null &&
-                _detections.isNotEmpty &&
-                _imageSize != null)
-              CustomPaint(
-                painter:
-                    BoundingBoxPainter(_detections, _imageSize!, BoxFit.cover),
-              ),
-            if (_isLoading)
-              Container(
-                color: Colors.black.withValues(alpha: 0.5),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(color: Colors.white),
-                      const SizedBox(height: AppSpacing.space4),
-                      Text(
-                        _loadingMessage ?? '처리 중...',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+        child: _analysisResult != null && _selectedFile != null
+            ? Row(
+                children: [
+                  // Left: Original Image
+                  Expanded(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          _selectedFile!.path,
+                          fit: BoxFit.cover,
+                        ),
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              '원본',
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const VerticalDivider(width: 1, color: AppColors.border),
+                  // Right: Analyzed Image (Overlay)
+                  Expanded(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(
+                          _selectedFile!.path,
+                          fit: BoxFit.cover,
+                        ),
+                        if (_detections.isNotEmpty && _imageSize != null)
+                          CustomPaint(
+                            painter: BoundingBoxPainter(
+                                _detections, _imageSize!, BoxFit.cover),
+                          ),
+                        Positioned(
+                          top: 10,
+                          left: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              _currentType == MonitoringType.cctv
+                                  ? 'SegFormer 분석'
+                                  : 'EfficientNet 분석',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (_selectedFile != null)
+                    Image.network(
+                      _selectedFile!.path,
+                      fit: BoxFit.cover,
+                    ),
+                  if (_isLoading)
+                    Container(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const CircularProgressIndicator(
+                                color: Colors.white),
+                            const SizedBox(height: AppSpacing.space4),
+                            Text(
+                              _loadingMessage ?? '처리 중...',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            if (_selectedFile == null && !_isLoading)
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_photo_alternate_outlined,
-                      size: 48, color: AppColors.primary),
-                  const SizedBox(height: AppSpacing.space3),
-                  Text(
-                    _currentType == MonitoringType.cctv
-                        ? 'CCTV 이미지를 선택하세요'
-                        : '드론 촬영 이미지를 선택하세요',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.bodyL.copyWith(color: AppColors.text2),
-                  ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: AppSpacing.space4),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        _errorMessage!,
-                        style: AppTypography.bodyM
-                            .copyWith(color: AppColors.danger),
-                        textAlign: TextAlign.center,
+                    ),
+                  if (_selectedFile == null && !_isLoading)
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_photo_alternate_outlined,
+                            size: 64, color: AppColors.primary),
+                        const SizedBox(height: AppSpacing.space4),
+                        Text(
+                          _currentType == MonitoringType.cctv
+                              ? 'CCTV 이미지를 선택하세요'
+                              : '드론 촬영 이미지를 선택하세요',
+                          textAlign: TextAlign.center,
+                          style: AppTypography.titleL
+                              .copyWith(color: AppColors.text2),
+                        ),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: AppSpacing.space4),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              _errorMessage!,
+                              style: AppTypography.bodyL
+                                  .copyWith(color: AppColors.danger),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  if (!_isLoading && _analysisResult != null)
+                    Positioned(
+                      right: 16,
+                      bottom: 16,
+                      child: FloatingActionButton(
+                        onPressed: _pickImage,
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primary,
+                        child: const Icon(Icons.refresh),
                       ),
                     ),
-                  ],
                 ],
               ),
-            if (!_isLoading && _analysisResult != null)
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: FloatingActionButton.small(
-                  onPressed: _pickImage,
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primary,
-                  child: const Icon(Icons.refresh),
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }
@@ -518,6 +583,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         color = AppColors.danger;
         icon = Icons.warning;
         actionButton = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             PrimaryButton(
               label: '수리 견적 요청',
@@ -535,6 +601,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
     if (_analysisResult != AnalysisStatus.repair) {
       final oldButton = actionButton;
       actionButton = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (oldButton != null) ...[
             oldButton,
@@ -557,7 +624,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
           ),
           child: Row(
             children: [
-              Icon(icon, size: 40, color: color),
+              Icon(icon, size: 48, color: color),
               const SizedBox(width: AppSpacing.space4),
               Expanded(
                 child: Column(
@@ -570,11 +637,11 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Text(
                       description,
                       style:
-                          AppTypography.bodyM.copyWith(color: AppColors.text1),
+                          AppTypography.bodyL.copyWith(color: AppColors.text1),
                     ),
                   ],
                 ),
@@ -590,7 +657,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         ],
 
         const SizedBox(height: AppSpacing.space6),
-        Text('탐지 요약', style: AppTypography.titleM),
+        Text('탐지 요약', style: AppTypography.titleL),
         const SizedBox(height: AppSpacing.space3),
 
         Row(
@@ -627,7 +694,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
 
   Widget _buildStatCard(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.space3),
+      padding: const EdgeInsets.all(AppSpacing.space4),
       decoration: BoxDecoration(
         color: AppColors.card,
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -637,8 +704,8 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: AppTypography.labelM.copyWith(color: AppColors.text3)),
-          const SizedBox(height: 4),
+              style: AppTypography.labelL.copyWith(color: AppColors.text3)),
+          const SizedBox(height: 8),
           Text(
             value,
             style: AppTypography.headlineM.copyWith(
@@ -672,15 +739,13 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
   }
 
   Widget _buildSaveButton() {
-    return Padding(
-      padding:
-          const EdgeInsets.symmetric(horizontal: AppSpacing.screenPaddingH),
-      child: PrimaryButton(
-        label: '서버에 저장하기',
-        icon: Icons.save_outlined,
-        onPressed: _isLoading ? null : () => _saveAnalysisResult(),
-        isLoading: _isLoading,
-      ),
+    return PrimaryButton(
+      label: '분석 결과 저장하기',
+      icon: Icons.save_alt_outlined,
+      onPressed: _isLoading ? null : () => _saveAnalysisResult(),
+      isLoading: _isLoading,
+      // Same style as 'Check Cleaning Company' which uses PrimaryButton defaults
+      // backgroundColor: AppColors.primary (default)
     );
   }
 

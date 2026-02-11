@@ -219,7 +219,8 @@ class _ReportCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     _formatDateRange(),
-                    style: AppTypography.titleM.copyWith(
+                    style: AppTypography.titleL.copyWith(
+                      // titleM -> titleL
                       color: AppColors.text1,
                       fontWeight: FontWeight.w600,
                     ),
@@ -227,8 +228,8 @@ class _ReportCard extends StatelessWidget {
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                    horizontal: 12, // 10 -> 12
+                    vertical: 6, // 4 -> 6
                   ),
                   decoration: BoxDecoration(
                     color: isGood
@@ -238,7 +239,8 @@ class _ReportCard extends StatelessWidget {
                   ),
                   child: Text(
                     isGood ? '양호' : '주의',
-                    style: AppTypography.labelM.copyWith(
+                    style: AppTypography.labelL.copyWith(
+                      // labelM -> labelL
                       color: isGood ? AppColors.success : AppColors.warning,
                       fontWeight: FontWeight.w600,
                     ),
@@ -272,7 +274,8 @@ class _ReportCard extends StatelessWidget {
               children: [
                 Text(
                   '생성: ${_formatDate(report.createdAt ?? report.endDate)}',
-                  style: AppTypography.caption.copyWith(
+                  style: AppTypography.bodyM.copyWith(
+                    // caption -> bodyM
                     color: AppColors.text3,
                   ),
                 ),
@@ -280,7 +283,7 @@ class _ReportCard extends StatelessWidget {
                 Icon(
                   Icons.chevron_right,
                   color: AppColors.text3,
-                  size: 20,
+                  size: 24, // 20 -> 24
                 ),
               ],
             ),
@@ -325,16 +328,18 @@ class _StatItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: AppColors.text3),
-        const SizedBox(width: 4),
+        Icon(icon, size: 20, color: AppColors.text3), // 16 -> 20
+        const SizedBox(width: 6), // 4 -> 6
         Text(
           label,
-          style: AppTypography.caption.copyWith(color: AppColors.text2),
+          style: AppTypography.bodyM
+              .copyWith(color: AppColors.text2), // caption -> bodyM
         ),
-        const SizedBox(width: 6),
+        const SizedBox(width: 8), // 6 -> 8
         Text(
           value,
-          style: AppTypography.labelM.copyWith(
+          style: AppTypography.labelL.copyWith(
+            // labelM -> labelL
             color: valueColor ?? AppColors.text1,
             fontWeight: FontWeight.w600,
           ),
