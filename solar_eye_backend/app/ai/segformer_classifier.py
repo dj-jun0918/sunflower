@@ -161,6 +161,10 @@ class SegFormerClassifier:
         crack_ratio = crack_pixels / total_pixels
         soiling_ratio = soiling_pixels / total_pixels
         
+        # DEBUG LOGGING (민감도 분석용)
+        if crack_pixels > 0 or soiling_pixels > 0:
+            logger.info(f"🔍 SegFormer Analysis: Crack={crack_pixels}({crack_ratio:.4f}), Soiling={soiling_pixels}({soiling_ratio:.4f}), Total={total_pixels}")
+        
         # 결함 판정 (임계값 3.0% - 대폭 상향 조정)
         if crack_ratio > 0.03:
             defect_type = "defect" # Crack -> Defect

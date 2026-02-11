@@ -741,7 +741,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
   Widget _buildSaveButton() {
     return PrimaryButton(
       label: '분석 결과 저장하기',
-      icon: Icons.save_alt_outlined,
+      // icon: Icons.save_alt_outlined, // Removed to center text
       onPressed: _isLoading ? null : () => _saveAnalysisResult(),
       isLoading: _isLoading,
       // Same style as 'Check Cleaning Company' which uses PrimaryButton defaults
