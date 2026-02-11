@@ -11,7 +11,7 @@ abstract class AppTypography {
   // ============================================================
 
   static const TextStyle display = TextStyle(
-    fontSize: 32,
+    fontSize: 42,
     fontWeight: FontWeight.w700,
     height: 1.2,
     letterSpacing: -0.5,
@@ -22,14 +22,14 @@ abstract class AppTypography {
   // ============================================================
 
   static const TextStyle headlineL = TextStyle(
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: FontWeight.w600,
     height: 1.3,
     letterSpacing: -0.3,
   );
 
   static const TextStyle headlineM = TextStyle(
-    fontSize: 20,
+    fontSize: 26,
     fontWeight: FontWeight.w600,
     height: 1.3,
     letterSpacing: -0.2,
@@ -40,13 +40,13 @@ abstract class AppTypography {
   // ============================================================
 
   static const TextStyle titleL = TextStyle(
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: FontWeight.w500,
     height: 1.4,
   );
 
   static const TextStyle titleM = TextStyle(
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: FontWeight.w500,
     height: 1.4,
   );
@@ -56,13 +56,13 @@ abstract class AppTypography {
   // ============================================================
 
   static const TextStyle bodyL = TextStyle(
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: FontWeight.w400,
     height: 1.5,
   );
 
   static const TextStyle bodyM = TextStyle(
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.5,
   );
@@ -72,14 +72,14 @@ abstract class AppTypography {
   // ============================================================
 
   static const TextStyle labelL = TextStyle(
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: FontWeight.w500,
     height: 1.4,
     letterSpacing: 0.1,
   );
 
   static const TextStyle labelM = TextStyle(
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: FontWeight.w500,
     height: 1.4,
     letterSpacing: 0.1,
@@ -90,7 +90,7 @@ abstract class AppTypography {
   // ============================================================
 
   static const TextStyle caption = TextStyle(
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.4,
   );
@@ -101,13 +101,13 @@ abstract class AppTypography {
 
   static const TextStyle mono = TextStyle(
     fontFamily: monoFontFamily,
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: FontWeight.w500,
   );
 
   static const TextStyle monoL = TextStyle(
     fontFamily: monoFontFamily,
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: FontWeight.w600,
   );
 }

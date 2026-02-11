@@ -44,7 +44,7 @@ class AppTheme {
       systemOverlayStyle: SystemUiOverlayStyle.light,
       titleTextStyle: TextStyle(
         fontFamily: fontFamily,
-        fontSize: 18,
+        fontSize: 22,
         fontWeight: FontWeight.w600,
         color: Colors.white,
       ),
@@ -76,7 +76,7 @@ class AppTheme {
         ),
         textStyle: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -88,7 +88,7 @@ class AppTheme {
         foregroundColor: AppColors.primary,
         textStyle: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -103,12 +103,12 @@ class AppTheme {
       elevation: 8,
       selectedLabelStyle: TextStyle(
         fontFamily: fontFamily,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: FontWeight.w600,
       ),
       unselectedLabelStyle: TextStyle(
         fontFamily: fontFamily,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
     ),
@@ -207,7 +207,7 @@ class AppTheme {
       systemOverlayStyle: SystemUiOverlayStyle.light,
       titleTextStyle: TextStyle(
         fontFamily: fontFamily,
-        fontSize: 18,
+        fontSize: 22,
         fontWeight: FontWeight.w600,
         color: AppColors.text1Dark,
       ),
@@ -237,7 +237,7 @@ class AppTheme {
         ),
         textStyle: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 14,
+          fontSize: 16,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -252,12 +252,12 @@ class AppTheme {
       elevation: 8,
       selectedLabelStyle: TextStyle(
         fontFamily: fontFamily,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: FontWeight.w600,
       ),
       unselectedLabelStyle: TextStyle(
         fontFamily: fontFamily,
-        fontSize: 12,
+        fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
     ),

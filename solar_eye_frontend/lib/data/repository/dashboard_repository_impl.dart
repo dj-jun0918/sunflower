@@ -107,12 +107,45 @@ class DashboardRepositoryImpl implements DashboardRepository {
             alertsResponse.data['data'] ?? alertsResponse.data['alerts'];
         if (alertsJson != null && alertsJson is List) {
           alerts = alertsJson.map((e) {
-            // id 타입 변환
+            // id 타입 변환 및 severity 매핑
             final Map<String, dynamic> transformed =
                 Map<String, dynamic>.from(e);
             transformed['id'] = e['id'].toString();
             if (e['panelId'] != null)
               transformed['panelId'] = e['panelId'].toString();
+
+            // defectType -> severity 매핑
+            final String alertType = (e['alertType'] ?? 'system').toString();
+            String severity;
+            if (alertType == 'defect') {
+              severity = 'danger';
+            } else if (alertType == 'soiling') {
+              severity = 'warning';
+            } else {
+              severity = 'info';
+            }
+            transformed['severity'] = severity;
+
+            // 필수 필드 매핑 및 안전 처리
+            transformed['title'] = (e['title'] ?? '알림').toString();
+            transformed['message'] = (e['message'] ?? '내용 없음').toString();
+
+            // sentAt -> createdAt 매핑
+            if (e['sentAt'] != null) {
+              transformed['createdAt'] = e['sentAt'];
+            } else if (e['created_at'] != null) {
+              transformed['createdAt'] = e['created_at'];
+            } else {
+              transformed['createdAt'] = DateTime.now().toIso8601String();
+            }
+
+            // detectionId 매핑 (int -> String 변환)
+            if (e['detectionId'] != null) {
+              transformed['detectionId'] = e['detectionId'].toString();
+            } else if (e['detection_id'] != null) {
+              transformed['detectionId'] = e['detection_id'].toString();
+            }
+
             return Alert.fromJson(transformed);
           }).toList();
         }
