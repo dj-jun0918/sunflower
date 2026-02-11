@@ -362,8 +362,8 @@ class AnalysisService:
                 if r.mask is not None:
                      print(f"DEBUG: Mask shape: {r.mask.shape}, Unique: {np.unique(r.mask)}")
                 
-                # 마스크 처리 (Numpy -> Polygon JSON)
-                if r.mask is not None:
+                # 마스크 처리 (Numpy -> Polygon JSON) - 결함이 있는 경우만 수행
+                if r.mask is not None and r.defect_type != "normal":
                     try:
                         # 1. Resize mask to match original image crop if needed (assuming mask is same size as crop)
                         # The mask from SegFormer is usually 512x512, need to check if it matches detection bbox
@@ -548,8 +548,8 @@ class AnalysisService:
                 defect_subtype = None
                 mask_json = None
                 
-                # 마스크 처리 (Numpy -> Polygon JSON)
-                if seg_result.mask is not None:
+                # 마스크 처리 (Numpy -> Polygon JSON) - 결함이 있는 경우만 수행
+                if seg_result.mask is not None and seg_result.defect_type != "normal":
                     try:
                         # 1. 클래스 맵에서 해당 결함 유형에 맞는 바이너리 마스크 생성
                         # 0: Normal, 1: Crack/Defect, 2: Soiling
