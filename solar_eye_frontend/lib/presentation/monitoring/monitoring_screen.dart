@@ -586,7 +586,7 @@ class _MonitoringScreenState extends ConsumerState<MonitoringScreen>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             PrimaryButton(
-              label: '수리 견적 요청',
+              label: '수리 견적 확인하기',
               backgroundColor: AppColors.danger,
               onPressed: () => _showServiceModal('repair'),
             ),

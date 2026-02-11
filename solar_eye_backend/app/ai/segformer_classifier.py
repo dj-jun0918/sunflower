@@ -161,11 +161,11 @@ class SegFormerClassifier:
         crack_ratio = crack_pixels / total_pixels
         soiling_ratio = soiling_pixels / total_pixels
         
-        # 결함 판정 (임계값 0.5% - 상향 조정)
-        if crack_ratio > 0.005:
+        # 결함 판정 (임계값 3.0% - 대폭 상향 조정)
+        if crack_ratio > 0.03:
             defect_type = "defect" # Crack -> Defect
             confidence = 0.5 + (crack_ratio * 0.5) # Base 0.5 + ratio
-        elif soiling_ratio > 0.005:
+        elif soiling_ratio > 0.03:
             defect_type = "soiling"
             confidence = 0.5 + (soiling_ratio * 0.5) # Base 0.5 + ratio
         else:
