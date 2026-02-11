@@ -34,12 +34,11 @@ class SegFormerClassifier:
     """
     
     # 클래스 매핑 (모델 학습 시 정의된 ID)
-    # 0: Background/Normal, 1: Crack, 2: Soiling (가장 일반적인 설정, 모델에 따라 다를 수 있음)
-    # 사용자 정의에 따라 수정 필요할 수 있음
+    # 0: Normal, 1: Soiling, 2: Crack
     CLASS_MAP = {
         0: "normal",
-        1: "crack",
-        2: "soiling"
+        1: "soiling",
+        2: "crack"
     }
     
     def __init__(self, model_path: str, device: str = 'cuda'):
@@ -70,8 +69,7 @@ class SegFormerClassifier:
             
             # GPU 이동 및 최적화
             model.to(self.device)
-            if self.device == 'cuda':
-                model.half() # FP16
+            # FP16 (self.device == 'cuda') 제거 -> 수치 안정성을 위해 float32 사용
                 
             model.eval()
             
@@ -110,30 +108,31 @@ class SegFormerClassifier:
                 inputs = self.processor(images=batch, return_tensors="pt")
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
                 
-                if self.device == 'cuda':
-                    inputs["pixel_values"] = inputs["pixel_values"].half()
-
                 # 추론
                 with torch.no_grad():
                     outputs = self.model(**inputs)
                     
-                # 로짓 -> 클래스 맵 변환
-                # interpolation으로 원본 크기 복원 (또는 입력 크기 512x512)
+                # 로짓 추출
                 logits = outputs.logits  # (B, C, H, W)
                 
-                # 업샘플링 (입력 이미지 크기에 맞춤 - 여기서는 512x512 가정)
-                upsampled_logits = torch.nn.functional.interpolate(
-                    logits,
-                    size=batch[0].shape[:2], # (H, W)
-                    mode="bilinear",
-                    align_corners=False,
-                )
-                
-                predicted_masks = upsampled_logits.argmax(dim=1).cpu().numpy() # (B, H, W)
-                
-                # 결과 패키징
-                for mask in predicted_masks:
+                # 결과 패키징 (각 이미지별로 업샘플링 수행 - 배치 내 이미지 크기가 다를 수 있음)
+                for j in range(len(batch)):
+                    # 단일 이미지 로짓 추출 및 차원 추가 (1, C, H, W)
+                    single_logits = logits[j:j+1]
+                    
+                    # 해당 이미지의 원본 크기로 업샘플링
+                    upsampled_logits = torch.nn.functional.interpolate(
+                        single_logits,
+                        size=batch[j].shape[:2], # (H, W)
+                        mode="bilinear",
+                        align_corners=False,
+                    )
+                    
+                    # 마스크 변환 (H, W)
+                    mask = upsampled_logits.argmax(dim=1).squeeze(0).cpu().numpy()
                     results.append(self._analyze_mask(mask))
+                
+                # predicted_masks = upsampled_logits.argmax(dim=1).cpu().numpy() # (B, H, W) 제거됨
                 
                 pass
                     
@@ -154,9 +153,9 @@ class SegFormerClassifier:
         """마스크 분석하여 결함 유형 결정"""
         total_pixels = mask.size
         
-        # 0: Normal, 1: Crack, 2: Soiling
-        crack_pixels = np.count_nonzero(mask == 1)
-        soiling_pixels = np.count_nonzero(mask == 2)
+        # 0: Normal, 1: Soiling, 2: Crack (Corrected based on config.json)
+        soiling_pixels = np.count_nonzero(mask == 1)
+        crack_pixels = np.count_nonzero(mask == 2)
         
         crack_ratio = crack_pixels / total_pixels
         soiling_ratio = soiling_pixels / total_pixels
