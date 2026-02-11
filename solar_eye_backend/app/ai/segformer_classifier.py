@@ -98,8 +98,8 @@ class SegFormerClassifier:
             
         results = []
         
-        # BGR -> RGB 변환
-        rgb_images = [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in images]
+        # BGR -> RGB 변환 (테스트: 제거해보고 결과 변화 확인)
+        rgb_images = images # [cv2.cvtColor(img, cv2.COLOR_BGR2RGB) for img in images]
         
         for i in range(0, len(rgb_images), batch_size):
             batch = rgb_images[i : i + batch_size]
@@ -119,11 +119,13 @@ class SegFormerClassifier:
                     
                 # 로짓 추출
                 logits = outputs.logits  # (B, C, H, W)
+                probs = torch.nn.functional.softmax(logits, dim=1) # (B, C, H, W)
                 
                 # 결과 패키징 (각 이미지별로 업샘플링 수행 - 배치 내 이미지 크기가 다를 수 있음)
                 for j in range(len(batch)):
-                    # 단일 이미지 로짓 추출 및 차원 추가 (1, C, H, W)
+                    # 단일 이미지 로짓/확률 추출
                     single_logits = logits[j:j+1]
+                    single_probs = probs[j:j+1]
                     
                     # 해당 이미지의 원본 크기로 업샘플링
                     upsampled_logits = torch.nn.functional.interpolate(
@@ -135,6 +137,13 @@ class SegFormerClassifier:
                     
                     # 마스크 변환 (H, W)
                     mask = upsampled_logits.argmax(dim=1).squeeze(0).cpu().numpy()
+                    
+                    # --- RAW DEBUG ---
+                    if j == 0: # 첫 번째 이미지에 대해서만 상세 로깅
+                        avg_probs = single_probs.mean(dim=(2, 3)).squeeze().cpu().numpy()
+                        print(f"DEBUG: [RAW] Avg Probs: {avg_probs}")
+                        print(f"DEBUG: [RAW] Pixels 0-5 RGB: {batch[j][0, :5]}")
+                    
                     results.append(self._analyze_mask(mask))
                 
                 # 메모리 정리 (배치별)
