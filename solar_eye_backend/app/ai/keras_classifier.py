@@ -21,6 +21,20 @@ except ImportError as e:
 
 logger = logging.getLogger(__name__)
 
+# TensorFlow GPU 메모리 점유 제한 설정
+def setup_tf_gpu():
+    try:
+        gpus = tf.config.list_physical_devices('GPU')
+        if gpus:
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logger.info(f"TensorFlow GPU memory growth enabled for {len(gpus)} GPUs")
+    except Exception as e:
+        logger.warning(f"Failed to set TensorFlow GPU memory growth: {e}")
+
+# 모듈 로드 시 자동 실행
+setup_tf_gpu()
+
 
 @dataclass
 class ClassificationResult:

@@ -69,7 +69,8 @@ class SegFormerClassifier:
             
             # GPU 이동 및 최적화
             model.to(self.device)
-            # FP16 (self.device == 'cuda') 제거 -> 수치 안정성을 위해 float32 사용
+            if self.device == 'cuda':
+                model.half() # FP16 재활성화 (메모리 절약)
                 
             model.eval()
             
@@ -108,6 +109,10 @@ class SegFormerClassifier:
                 inputs = self.processor(images=batch, return_tensors="pt")
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
                 
+                # FP16 대응
+                if self.device == 'cuda':
+                    inputs["pixel_values"] = inputs["pixel_values"].half()
+                
                 # 추론
                 with torch.no_grad():
                     outputs = self.model(**inputs)
@@ -131,6 +136,10 @@ class SegFormerClassifier:
                     # 마스크 변환 (H, W)
                     mask = upsampled_logits.argmax(dim=1).squeeze(0).cpu().numpy()
                     results.append(self._analyze_mask(mask))
+                
+                # 메모리 정리 (배치별)
+                if self.device == 'cuda':
+                    torch.cuda.empty_cache()
                 
                 # predicted_masks = upsampled_logits.argmax(dim=1).cpu().numpy() # (B, H, W) 제거됨
                 
@@ -162,8 +171,9 @@ class SegFormerClassifier:
         
         # DEBUG LOGGING (민감도 분석용 - 터미널 확인용 print 추가)
         if crack_pixels > 0 or soiling_pixels > 0:
-            print(f"🔍 SegFormer Analysis [DETAILED]: Crack={crack_pixels}({crack_ratio:.4f}), Soiling={soiling_pixels}({soiling_ratio:.4f}), Total={total_pixels}")
-            logger.info(f"🔍 SegFormer Analysis: Crack={crack_pixels}({crack_ratio:.4f}), Soiling={soiling_pixels}({soiling_ratio:.4f}), Total={total_pixels}")
+            unique_vals = np.unique(mask)
+            print(f"🔍 SegFormer Analysis [DETAILED]: Unique={unique_vals}, Crack={crack_pixels}({crack_ratio:.4f}), Soiling={soiling_pixels}({soiling_ratio:.4f}), Total={total_pixels}")
+            logger.info(f"🔍 SegFormer Analysis: Unique={unique_vals}, Crack={crack_pixels}({crack_ratio:.4f}), Soiling={soiling_pixels}({soiling_ratio:.4f}), Total={total_pixels}")
         
         # 결함 판정 (임계값 3.0% - 대폭 상향 조정)
         if crack_ratio > 0.03:
