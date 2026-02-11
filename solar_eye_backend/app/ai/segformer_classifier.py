@@ -69,8 +69,8 @@ class SegFormerClassifier:
             
             # GPU 이동 및 최적화
             model.to(self.device)
-            if self.device == 'cuda':
-                model.half() # FP16 재활성화 (메모리 절약)
+            # FP16 비활성화: 99% 오검출 방지 및 수치 안정성 우선
+            # model.half() 
                 
             model.eval()
             
@@ -89,9 +89,9 @@ class SegFormerClassifier:
         results = self.predict_batch([image])
         return results[0] if results else None
 
-    def predict_batch(self, images: List[np.ndarray], batch_size: int = 4) -> List[SegmentationResult]:
+    def predict_batch(self, images: List[np.ndarray], batch_size: int = 1) -> List[SegmentationResult]:
         """
-        배치 단위 추론
+        배치 단위 추론 (OOM 방지를 위해 기본 배치 크기 1로 축소)
         """
         if not images:
             return []
@@ -109,9 +109,9 @@ class SegFormerClassifier:
                 inputs = self.processor(images=batch, return_tensors="pt")
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
                 
-                # FP16 대응
-                if self.device == 'cuda':
-                    inputs["pixel_values"] = inputs["pixel_values"].half()
+                # FP16 대신 Float32 사용 (데이터 정밀도를 위해)
+                # if self.device == 'cuda':
+                #     inputs["pixel_values"] = inputs["pixel_values"].half()
                 
                 # 추론
                 with torch.no_grad():

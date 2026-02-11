@@ -370,11 +370,11 @@ class AnalysisService:
                         # For now, let's assume mask is relative to the BBOX.
                         
                         # Convert basic binary mask to contours
-                        # mask should be uint8 0 or 255
-                        mask_u8 = r.mask.astype(np.uint8)
+                        # mask should be uint8 (0, 1, 2) -> Scale to 255 for findContours
+                        mask_u8 = (r.mask > 0).astype(np.uint8) * 255
                         contours, _ = cv2.findContours(mask_u8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                         
-                        print(f"DEBUG: Contours found: {len(contours)}")
+                        print(f"DEBUG: Contours found: {len(contours)} for defect type {r.defect_type}")
                         
                         polygons = []
                         for contour in contours:
@@ -506,7 +506,7 @@ class AnalysisService:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                 
-                MAX_BATCH_SIZE = 4 # Reduced from 8 to prevent OOM
+                MAX_BATCH_SIZE = 1 # Reduced from 4 to 1 for stability and sequential processing
                 seg_results = pipeline.seg_classifier.predict_batch(enhanced_crops, batch_size=MAX_BATCH_SIZE)
                 
                 # Cleanup CUDA once after batch
