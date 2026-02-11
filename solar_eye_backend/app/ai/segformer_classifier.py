@@ -170,10 +170,10 @@ class SegFormerClassifier:
         """마스크 분석하여 결함 유형 결정 (정교화된 판단 로직)"""
         total_pixels = mask.size
         
-        # 0: Normal, 1: Soiling, 2: Crack (Model config.json 기준)
+        # 0: Normal, 1: Crack, 2: Soiling (Swapped indices based on user observation)
         normal_pixels = np.count_nonzero(mask == 0)
-        soiling_pixels = np.count_nonzero(mask == 1)
-        crack_pixels = np.count_nonzero(mask == 2)
+        crack_pixels = np.count_nonzero(mask == 1) # Was soiling
+        soiling_pixels = np.count_nonzero(mask == 2) # Was crack
         
         crack_ratio = crack_pixels / total_pixels
         soiling_ratio = soiling_pixels / total_pixels
@@ -188,12 +188,12 @@ class SegFormerClassifier:
         if normal_ratio > crack_ratio and normal_ratio > soiling_ratio:
             defect_type = "normal"
             confidence = normal_ratio
-        # 2. Crack 우선 판단 (Soiling보다 크고 최소 5% 이상일 때)
+        # 2. Crack 우선 판단 (더 치명적임, 최소 5% 이상일 때)
         elif crack_ratio > 0.05 and crack_ratio > soiling_ratio:
             defect_type = "defect"
             confidence = 0.5 + (crack_ratio * 0.5)
-        # 3. Soiling 판단 (Normal이 지배적이지 않고 15% 이상일 때)
-        elif soiling_ratio > 0.15:
+        # 3. Soiling 판단 (Normal이 지배적이지 않고 30% 이상일 때 - 오성 정밀도 위해 상향)
+        elif soiling_ratio > 0.30:
             defect_type = "soiling"
             confidence = 0.5 + (soiling_ratio * 0.5)
         # 4. 그 외 기본값 Normal

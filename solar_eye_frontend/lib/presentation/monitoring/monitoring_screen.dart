@@ -997,8 +997,13 @@ class BoundingBoxPainter extends CustomPainter {
       if (detection['mask'] != null) {
         final List<dynamic> polygons = detection['mask'];
         final maskPaint = Paint()
-          ..color = color.withOpacity(0.5) // Higher opacity for visibility
+          ..color = color.withOpacity(0.6) // Transparency for area
           ..style = PaintingStyle.fill;
+
+        final strokePaint = Paint()
+          ..color = color // Solid color for outline
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0;
 
         for (var polygon in polygons) {
           final path = Path();
@@ -1035,11 +1040,7 @@ class BoundingBoxPainter extends CustomPainter {
           canvas.drawPath(path, maskPaint);
 
           // Draw outline
-          canvas.drawPath(
-              path,
-              paint
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 1.5);
+          canvas.drawPath(path, strokePaint);
         }
       } else {
         // Fallback: Draw Rectangle Only
