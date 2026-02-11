@@ -997,7 +997,7 @@ class BoundingBoxPainter extends CustomPainter {
       if (detection['mask'] != null) {
         final List<dynamic> polygons = detection['mask'];
         final maskPaint = Paint()
-          ..color = color.withValues(alpha: 0.4) // Semi-transparent fill
+          ..color = color.withOpacity(0.5) // Higher opacity for visibility
           ..style = PaintingStyle.fill;
 
         for (var polygon in polygons) {

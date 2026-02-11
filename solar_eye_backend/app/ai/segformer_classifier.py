@@ -183,16 +183,20 @@ class SegFormerClassifier:
         if crack_pixels > 0 or soiling_pixels > 0:
             print(f"🔍 SegFormer [RAW]: Normal={normal_ratio:.4f}, Crack={crack_ratio:.4f}, Soiling={soiling_ratio:.4f}")
         
-        # 결함 판정 로직 (Normal 클래스가 지배적이지 않거나, 결함 비율이 충분히 높을 때)
-        # 1. Crack 우선 판단 (더 치명적임)
-        if crack_ratio > 0.05 and crack_ratio > soiling_ratio:
+        # 결함 판정 로직 (승자 독식 + 최소 임계값)
+        # 1. Normal이 가장 크면 무조건 Normal (그림자 등으로 인한 오탐 방지)
+        if normal_ratio > crack_ratio and normal_ratio > soiling_ratio:
+            defect_type = "normal"
+            confidence = normal_ratio
+        # 2. Crack 우선 판단 (Soiling보다 크고 최소 5% 이상일 때)
+        elif crack_ratio > 0.05 and crack_ratio > soiling_ratio:
             defect_type = "defect"
             confidence = 0.5 + (crack_ratio * 0.5)
-        # 2. Soiling 판단
-        elif soiling_ratio > 0.05:
+        # 3. Soiling 판단 (Normal이 지배적이지 않고 15% 이상일 때)
+        elif soiling_ratio > 0.15:
             defect_type = "soiling"
             confidence = 0.5 + (soiling_ratio * 0.5)
-        # 3. Normal (Normal이 70% 이상이거나 결함 비율이 낮을 때)
+        # 4. 그 외 기본값 Normal
         else:
             defect_type = "normal"
             confidence = normal_ratio
